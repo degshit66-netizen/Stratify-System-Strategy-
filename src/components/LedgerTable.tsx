@@ -283,7 +283,7 @@ export const LedgerTable: React.FC<LedgerTableProps> = ({
                       {row.payRef && <div className="text-[10px] text-blue-600 dark:text-blue-400 font-bold font-mono">#{row.payRef}</div>}
                     </td>
                     <td className="px-5 py-3 text-right font-extrabold font-mono text-zinc-800 dark:text-zinc-200">{displayMoney(row.gross)}</td>
-                    <td className="px-5 py-3 text-right font-medium font-mono text-zinc-500 dark:text-zinc-400">{displayMoney(row.net)}</td>
+                    <td className="px-5 py-3 text-right font-medium font-mono text-zinc-500 dark:text-zinc-400">{displayMoney(row.net !== undefined ? row.net : (row.taxType === 'Vatable' ? row.gross / 1.12 : row.gross))}</td>
                     <td className="px-5 py-3 text-right font-medium font-mono text-zinc-400 dark:text-zinc-500">{displayMoney(row.vat)}</td>
                     <td className="px-5 py-3 text-right font-semibold font-mono text-blue-500">{displayMoney(row.ewt)}</td>
                     <td className="px-5 py-3 text-right font-extrabold font-mono text-zinc-900 dark:text-zinc-100">{displayMoney(row.cash)}</td>

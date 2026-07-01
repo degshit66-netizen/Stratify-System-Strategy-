@@ -11,7 +11,7 @@ interface EntryModalProps {
   onSaveEntry: (entry: LedgerEntry) => void;
   showToast: (msg: string, type: 'success' | 'error' | 'info') => void;
   initialType?: 'Sales' | 'Expense';
-  scanResult?: string;
+  scanResult?: { payor: string, particulars: string, gross: string, accountCode: string, tin?: string } | null;
   initialData?: LedgerEntry;
 }
 
@@ -55,6 +55,16 @@ export const EntryModal: React.FC<EntryModalProps> = ({
         setTerms(initialData.terms || 'COD');
         setCashInput(initialData.amount_paid?.toString() || '');
         setArApInput(initialData.balance?.toString() || '');
+      } else if (scanResult) {
+        if (initialType) setType(initialType);
+        setDate(new Date().toISOString().slice(0, 10));
+        setAccountCode(scanResult.accountCode);
+        setPayor(scanResult.payor);
+        setTin(scanResult.tin || '');
+        setParticulars(scanResult.particulars);
+        setGrossInput(scanResult.gross);
+        setCashInput(scanResult.gross);
+        setArApInput('0');
       } else {
         if (initialType) setType(initialType);
         setDate(new Date().toISOString().slice(0, 10));
@@ -70,7 +80,7 @@ export const EntryModal: React.FC<EntryModalProps> = ({
         setTerms('COD');
       }
     }
-  }, [isOpen, initialType, initialData]);
+  }, [isOpen, initialType, initialData, scanResult]);
 
   const [contacts, setContacts] = useState<any[]>([]);
 

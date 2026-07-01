@@ -1,6 +1,8 @@
 export interface Tenant {
   id: string;
   name: string;
+  tin?: string;
+  address?: string;
   logo: string | null;
   subscriptionStatus: 'trial' | 'active' | 'paused' | 'terminated' | 'expired';
   trialEndsAt: string;

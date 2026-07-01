@@ -329,7 +329,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                   <td className="px-5 py-3.5 text-xs text-zinc-800 dark:text-zinc-200 font-bold truncate max-w-[180px]">{r.payor}</td>
                   <td className="px-5 py-3.5 text-xs text-zinc-500 font-mono font-medium">{r.ref}</td>
                   <td className="px-5 py-3.5 text-xs text-right font-semibold font-mono text-zinc-800 dark:text-zinc-300">{displayMoney(r.gross)}</td>
-                  <td className="px-5 py-3.5 text-xs text-right font-medium font-mono text-zinc-500 dark:text-zinc-400">{displayMoney(r.net)}</td>
+                  <td className="px-5 py-3.5 text-xs text-right font-medium font-mono text-zinc-500 dark:text-zinc-400">{displayMoney(r.net !== undefined ? r.net : (r.taxType === 'Vatable' ? r.gross / 1.12 : r.gross))}</td>
                   <td className="px-5 py-3.5 text-xs text-right font-medium font-mono text-zinc-400 dark:text-zinc-500">{displayMoney(r.vat)}</td>
                   <td className="px-5 py-3.5 text-xs text-right font-bold font-mono text-zinc-800 dark:text-zinc-100">{displayMoney(r.cash)}</td>
                 </tr>

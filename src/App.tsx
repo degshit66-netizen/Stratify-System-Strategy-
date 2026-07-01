@@ -205,7 +205,7 @@ export default function App() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [entryModalType, setEntryModalType] = useState<'Sales' | 'Expense'>('Sales');
   const [activeVoucher, setActiveVoucher] = useState<LedgerEntry | null>(null);
-  const [scanResult, setScanResult] = useState<{ payor: string, particulars: string, gross: string, accountCode: string } | null>(null);
+  const [scanResult, setScanResult] = useState<{ payor: string, particulars: string, gross: string, accountCode: string, tin?: string } | null>(null);
   
   const [isDarkMode, setIsDarkMode] = useState(() => {
     return localStorage.getItem('stratify_theme') !== 'light';
@@ -344,22 +344,51 @@ export default function App() {
   const handleScanExpense = () => {
     const fileInput = document.createElement('input');
     fileInput.type = 'file';
-    fileInput.accept = 'image/*,application/pdf';
-    fileInput.onchange = (e: any) => {
+    fileInput.accept = 'image/*';
+    fileInput.onchange = async (e: any) => {
       const file = e.target.files?.[0];
       if (file) {
         showToast(`Processing receipt "${file.name}" with AI OCR...`, 'info');
-        setTimeout(() => {
-          setEntryModalType('Expense');
-          setScanResult({
-            payor: 'PC Express Inc.',
-            particulars: `Purchased Developer Laptops & Office Equipment (AI OCR Scanned)`,
-            gross: '125000',
-            accountCode: '1510'
-          });
-          setIsEntryOpen(true);
-          showToast('AI OCR Scanner: Extracted transaction details! Please review and click Post.', 'success');
-        }, 1500);
+        
+        try {
+          // Convert file to base64
+          const reader = new FileReader();
+          reader.readAsDataURL(file);
+          reader.onload = async () => {
+            const base64Data = (reader.result as string).split(',')[1];
+            
+            const response = await fetch("/api/scan-receipt", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                image: base64Data,
+                mimeType: file.type,
+              }),
+            });
+            
+            if (!response.ok) {
+              throw new Error("Failed to process image");
+            }
+            
+            const data = await response.json();
+            // Try to parse the markdown JSON block returned by Gemini
+            const textResult = data.result.replace(/```json\n/g, '').replace(/```/g, '').trim();
+            const parsed = JSON.parse(textResult);
+
+            setEntryModalType('Expense');
+            setScanResult({
+              payor: parsed.payor || 'Unknown Payor',
+              particulars: parsed.particulars || 'AI Scanned Expense',
+              gross: parsed.gross || '0',
+              accountCode: '5000' // Default to a general expense code, they can change it
+            });
+            setIsEntryOpen(true);
+            showToast('AI OCR Scanner: Extracted transaction details! Please review and click Post.', 'success');
+          };
+        } catch (error) {
+          console.error(error);
+          showToast('Failed to analyze receipt. Please try again or enter manually.', 'error');
+        }
       }
     };
     fileInput.click();

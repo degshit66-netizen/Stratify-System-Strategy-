@@ -249,7 +249,7 @@ export const PurchaseModule: React.FC<PurchaseModuleProps> = ({
                   <td className="px-5 py-3.5 font-mono font-bold text-zinc-800 dark:text-zinc-300">{r.ref}</td>
                   <td className="px-5 py-3.5 text-zinc-500 font-semibold">{r.category}</td>
                   <td className="px-5 py-3.5 text-right font-extrabold font-mono text-zinc-800 dark:text-zinc-200">{displayMoney(r.gross)}</td>
-                  <td className="px-5 py-3.5 text-right font-medium font-mono text-zinc-500 dark:text-zinc-400">{displayMoney(r.net)}</td>
+                  <td className="px-5 py-3.5 text-right font-medium font-mono text-zinc-500 dark:text-zinc-400">{displayMoney(parseNum(r.net) || (r.taxType === 'Vatable' ? parseNum(r.gross) / 1.12 : parseNum(r.gross)))}</td>
                   <td className="px-5 py-3.5 text-right font-medium font-mono text-zinc-400 dark:text-zinc-500">{displayMoney(r.vat)}</td>
                   <td className="px-5 py-3.5 text-right font-bold font-mono text-zinc-900 dark:text-zinc-100">{displayMoney(r.cash)}</td>
                   <td className="px-5 py-3.5 text-center">
