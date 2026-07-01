@@ -68,6 +68,7 @@ import { FeatureTour } from './components/FeatureTour';
 import { SubscriptionPrompt } from './components/SubscriptionPrompt';
 import { useTrialMonitor } from './hooks/useTrialMonitor';
 import { User, Tenant } from './types';
+import { loadTenantsFromFirebase, loadUsersFromFirebase, syncTenantToFirebase, syncUserToFirebase } from './lib/db';
 
 // Modals
 import { EntryModal } from './components/EntryModal';
@@ -111,48 +112,65 @@ export default function App() {
   const { isTrialExpired } = useTrialMonitor(currentTenant);
 
   useEffect(() => {
-    // Load mock db
-    const tStr = localStorage.getItem('mock_tenants');
-    const uStr = localStorage.getItem('mock_users');
+    const initializeData = async () => {
+      let loadedTenants = await loadTenantsFromFirebase();
+      let loadedUsers = await loadUsersFromFirebase();
+
+      // Fallback to local storage if Firebase is empty (migration)
+      if (loadedTenants.length === 0) {
+        const tStr = localStorage.getItem('mock_tenants');
+        loadedTenants = tStr ? JSON.parse(tStr) : [];
+        // Sync to firebase
+        loadedTenants.forEach(t => syncTenantToFirebase(t));
+      }
+      
+      if (loadedUsers.length === 0) {
+        const uStr = localStorage.getItem('mock_users');
+        loadedUsers = uStr ? JSON.parse(uStr) : [];
+        // Sync to firebase
+        loadedUsers.forEach(u => syncUserToFirebase(u));
+      }
+
+      setTenants(loadedTenants);
+      setUsers(loadedUsers);
+
+      // Hydrate current user from storage
+      const uid = localStorage.getItem('current_user_id');
+      const tid = localStorage.getItem('current_tenant_id');
+
+      if (uid === 'admin-1') {
+         setCurrentUser({ id: 'admin-1', email: 'stratify2026@gmail.com', role: 'superadmin', name: 'Super Admin' });
+      } else if (uid) {
+         const u = loadedUsers.find(x => x.id === uid);
+         if (u) {
+            setCurrentUser(u);
+            if (tid) {
+               const t = loadedTenants.find(x => x.id === tid);
+               if (t) setCurrentTenant(t);
+            }
+         }
+      }
+
+      if (localStorage.getItem('show_onboarding_pending') === 'true') {
+         setShowOnboarding(true);
+         localStorage.removeItem('show_onboarding_pending');
+      }
+    };
     
-    const loadedTenants: Tenant[] = tStr ? JSON.parse(tStr) : [];
-    const loadedUsers: User[] = uStr ? JSON.parse(uStr) : [];
-    
-    if (tStr) setTenants(loadedTenants);
-    if (uStr) setUsers(loadedUsers);
-
-    // Hydrate current user from storage
-    const uid = localStorage.getItem('current_user_id');
-    const tid = localStorage.getItem('current_tenant_id');
-
-    if (uid === 'admin-1') {
-       setCurrentUser({ id: 'admin-1', email: 'stratify2026@gmail.com', role: 'superadmin', name: 'Super Admin' });
-    } else if (uid) {
-       const u = loadedUsers.find(x => x.id === uid);
-       if (u) {
-          setCurrentUser(u);
-          if (tid) {
-             const t = loadedTenants.find(x => x.id === tid);
-             if (t) setCurrentTenant(t);
-          }
-       }
-    }
-
-    if (localStorage.getItem('show_onboarding_pending') === 'true') {
-       setShowOnboarding(true);
-       localStorage.removeItem('show_onboarding_pending');
-    }
+    initializeData();
   }, []);
 
   useEffect(() => {
     if (tenants.length > 0) {
       localStorage.setItem('mock_tenants', JSON.stringify(tenants));
+      tenants.forEach(t => syncTenantToFirebase(t));
     }
   }, [tenants]);
 
   useEffect(() => {
     if (users.length > 0) {
       localStorage.setItem('mock_users', JSON.stringify(users));
+      users.forEach(u => syncUserToFirebase(u));
     }
   }, [users]);
 
