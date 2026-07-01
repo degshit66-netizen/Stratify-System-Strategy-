@@ -216,14 +216,18 @@ export default function App() {
     secPermitNo: 'SEC-PH-2026-99120',
     ptuNo: 'PTU-11223344-STRATIFY',
     authorizedPIN: '1234',
-    logoUrl: '/logo.png'
+    logoUrl: 'https://i.postimg.cc/5yGwSWWR/1782659487700.png'
   });
 
   useEffect(() => {
     try {
       const stored = localStorage.getItem('stratify_company_config');
       if (stored) {
-        setCompanyConfig(JSON.parse(stored));
+        const parsed = JSON.parse(stored);
+        if (parsed.logoUrl === '/logo.png' || parsed.logoUrl === '') {
+          parsed.logoUrl = 'https://i.postimg.cc/5yGwSWWR/1782659487700.png';
+        }
+        setCompanyConfig(parsed);
       }
     } catch (e) {}
   }, [isSettingsOpen]);
@@ -441,10 +445,10 @@ export default function App() {
       {/* HEADER SECTION (NO-PRINT) */}
       <header className="bg-gradient-to-r from-blue-950 via-blue-900 to-indigo-950 border-b border-blue-900 text-white px-6 py-4 flex items-center justify-between no-print shadow-md">
         <div className="flex items-center gap-4">
-          {currentTenant?.logo && !logoError ? (
-            <img src={currentTenant.logo} alt="Logo" onError={() => setLogoError(true)} className="h-16 w-16 md:h-20 md:w-20 rounded-xl object-cover shadow-inner bg-white p-1" />
-          ) : companyConfig.logoUrl && !logoError ? (
-            <img src={companyConfig.logoUrl} alt="Logo" onError={() => setLogoError(true)} className="h-16 w-16 md:h-20 md:w-20 rounded-xl object-cover shadow-inner bg-white p-1" />
+          {currentTenant?.logo ? (
+            <img src={currentTenant.logo} alt="Logo" className="h-16 w-16 md:h-20 md:w-20 rounded-xl object-cover shadow-inner bg-white p-1" />
+          ) : companyConfig.logoUrl ? (
+            <img src={companyConfig.logoUrl} alt="Logo" className="h-16 w-16 md:h-20 md:w-20 rounded-xl object-cover shadow-inner bg-white p-1" />
           ) : (
             <div className="bg-gradient-to-br from-yellow-400 to-amber-600 text-zinc-950 p-4 md:p-5 rounded-xl font-bold tracking-tight text-2xl md:text-3xl shadow-inner flex items-center justify-center h-16 w-16 md:h-20 md:w-20">
               {currentTenant ? currentTenant.name.charAt(0).toUpperCase() : 'ST'}

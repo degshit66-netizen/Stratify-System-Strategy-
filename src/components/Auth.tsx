@@ -127,18 +127,11 @@ export const Auth: React.FC<AuthProps> = ({ onLogin, tenants, setTenants, users,
         className="w-full max-w-md bg-white dark:bg-zinc-900 rounded-3xl shadow-2xl overflow-hidden border border-blue-100 dark:border-blue-900/30"
       >
         <div className="p-8 text-center bg-white dark:bg-zinc-900 border-b border-blue-50 dark:border-zinc-800">
-          {!imageError ? (
-            <img 
-              src="/logo.png" 
-              alt="STRATIFY Logo" 
-              className="w-24 h-24 mx-auto mb-4 object-contain"
-              onError={() => setImageError(true)}
-            />
-          ) : (
-            <div className="w-16 h-16 bg-blue-600 text-white rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-inner">
-              <Building className="w-8 h-8" />
-            </div>
-          )}
+          <img 
+            src="https://i.postimg.cc/5yGwSWWR/1782659487700.png" 
+            alt="STRATIFY Logo" 
+            className="w-24 h-24 mx-auto mb-4 object-contain rounded-xl shadow-sm"
+          />
           <h1 className="text-2xl font-bold mb-2 text-zinc-900 dark:text-white">STRATIFY (System+Strategy)</h1>
           <p className="text-blue-600 dark:text-blue-400 text-sm font-medium tracking-wide uppercase">System Development</p>
         </div>

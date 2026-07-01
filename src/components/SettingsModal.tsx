@@ -26,21 +26,25 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     secPermitNo: 'SEC-PH-2026-99120',
     ptuNo: 'PTU-11223344-STRATIFY',
     authorizedPIN: '1234',
-    logoUrl: '/logo.png'
+    logoUrl: 'https://i.postimg.cc/5yGwSWWR/1782659487700.png'
   });
 
   React.useEffect(() => {
     try {
       const stored = localStorage.getItem('stratify_company_config');
       if (stored) {
-        setConfig(JSON.parse(stored));
+        const parsed = JSON.parse(stored);
+        if (parsed.logoUrl === '/logo.png' || parsed.logoUrl === '') {
+          parsed.logoUrl = 'https://i.postimg.cc/5yGwSWWR/1782659487700.png';
+        }
+        setConfig(parsed);
       }
     } catch (e) {}
   }, []);
 
   React.useEffect(() => {
     if (currentTenant && currentTenant.logo) {
-      setConfig(prev => ({ ...prev, logoUrl: currentTenant.logo || '/logo.png' }));
+      setConfig(prev => ({ ...prev, logoUrl: currentTenant.logo || 'https://i.postimg.cc/5yGwSWWR/1782659487700.png' }));
     }
   }, [currentTenant]);
 
@@ -54,7 +58,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     localStorage.setItem('stratify_company_config', JSON.stringify(config));
     
     if (updateTenantLogo) {
-      updateTenantLogo(config.logoUrl || '/logo.png');
+      updateTenantLogo(config.logoUrl || 'https://i.postimg.cc/5yGwSWWR/1782659487700.png');
     }
 
     showToast('Settings successfully persisted.', 'success');
@@ -123,7 +127,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   <input 
                     type="text" 
                     value={config.logoUrl || ''}
-                    placeholder="https://example.com/logo.png"
+                    placeholder="https://i.postimg.cc/5yGwSWWR/1782659487700.png"
                     onChange={(e) => setConfig({ ...config, logoUrl: e.target.value })}
                     className="w-full text-xs bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3.5 py-2.5 text-zinc-800 dark:text-zinc-200 focus:outline-none focus:border-blue-400"
                   />
