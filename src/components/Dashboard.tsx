@@ -168,10 +168,10 @@ export const Dashboard: React.FC<DashboardProps> = ({
         <motion.div variants={itemVariants} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-5 rounded-2xl flex items-start justify-between shadow-sm">
           <div className="space-y-2">
             <span className="text-xs font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Purchases & Expenses</span>
-            <div className="text-lg font-extrabold text-red-600 dark:text-red-400">{displayMoney(totalPurchGross)}</div>
+            <div className="text-lg font-extrabold text-zinc-900 dark:text-zinc-100">{displayMoney(totalPurchGross)}</div>
             <div className="text-xs font-medium text-zinc-400">{purchases.length} expenses posted</div>
           </div>
-          <div className="bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 p-2.5 rounded-xl">
+          <div className="bg-zinc-50 dark:bg-zinc-950/40 text-zinc-900 dark:text-zinc-100 p-2.5 rounded-xl">
             <TrendingDown className="w-5 h-5" />
           </div>
         </motion.div>
@@ -241,7 +241,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 />
                 <Legend iconType="circle" wrapperStyle={{ fontSize: 11, paddingTop: 10 }} />
                 <Bar dataKey="Sales" fill="#10b981" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="Purchases" fill="#ef4444" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="Purchases" fill="#18181b" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>

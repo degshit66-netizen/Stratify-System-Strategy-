@@ -192,7 +192,8 @@ export const LedgerTable: React.FC<LedgerTableProps> = ({
                 <th className="px-5 py-3 font-mono">TIN</th>
                 <th className="px-5 py-3 font-mono cursor-pointer select-none hover:text-zinc-600 dark:hover:text-zinc-200" onClick={() => handleSort('ref')}>S.I / Ref {sortCol === 'ref' ? (sortAsc ? '▲' : '▼') : ''}</th>
                 <th className="px-5 py-3">Payment</th>
-                <th className="px-5 py-3 text-right">Gross</th>
+                <th className="px-5 py-3 text-right bg-blue-50/30 dark:bg-blue-900/10 font-bold text-blue-600 dark:text-blue-400">Debit</th>
+                <th className="px-5 py-3 text-right bg-emerald-50/30 dark:bg-emerald-900/10 font-bold text-emerald-600 dark:text-emerald-400">Credit</th>
                 <th className="px-5 py-3 text-right">Net</th>
                 <th className="px-5 py-3 text-right">VAT</th>
                 <th className="px-5 py-3 text-right">EWT</th>
@@ -282,7 +283,8 @@ export const LedgerTable: React.FC<LedgerTableProps> = ({
                       <div>{row.paymentMode}</div>
                       {row.payRef && <div className="text-[10px] text-blue-600 dark:text-blue-400 font-bold font-mono">#{row.payRef}</div>}
                     </td>
-                    <td className="px-5 py-3 text-right font-extrabold font-mono text-zinc-800 dark:text-zinc-200">{displayMoney(row.gross)}</td>
+                    <td className="px-5 py-3 text-right font-extrabold font-mono text-blue-600 dark:text-blue-400 bg-blue-50/10">{displayMoney(row.gross)}</td>
+                    <td className="px-5 py-3 text-right font-extrabold font-mono text-emerald-600 dark:text-emerald-400 bg-emerald-50/10">{displayMoney(row.gross)}</td>
                     <td className="px-5 py-3 text-right font-medium font-mono text-zinc-500 dark:text-zinc-400">{displayMoney(row.net !== undefined ? row.net : (row.taxType === 'Vatable' ? row.gross / 1.12 : row.gross))}</td>
                     <td className="px-5 py-3 text-right font-medium font-mono text-zinc-400 dark:text-zinc-500">{displayMoney(row.vat)}</td>
                     <td className="px-5 py-3 text-right font-semibold font-mono text-blue-500">{displayMoney(row.ewt)}</td>

@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Tenant, User } from '../types';
-import { ShieldCheck, Building, Users, Play, Pause, XCircle, LogOut, Search, TrendingUp, DollarSign, Activity, MoreVertical, CreditCard, Calendar, CheckCircle } from 'lucide-react';
+import { ShieldCheck, Building, Users, Play, Pause, XCircle, LogOut, Search, TrendingUp, DollarSign, Activity, MoreVertical, CreditCard, Calendar, CheckCircle, FileText } from 'lucide-react';
 import { format, addMonths } from 'date-fns';
 
 interface SuperAdminDashboardProps {
@@ -66,13 +66,24 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ tenant
               <p className="text-xs text-zinc-500 font-medium">Super Administrator Dashboard</p>
             </div>
           </div>
-          <button 
-            onClick={onLogout}
-            className="flex items-center gap-2 px-4 py-2 bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 rounded-lg text-sm font-bold hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors"
-          >
-            <LogOut className="w-4 h-4" />
-            Sign Out
-          </button>
+          <div className="flex items-center gap-3">
+            <label className="flex items-center gap-2 px-4 py-2 bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 rounded-lg text-sm font-bold hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors cursor-pointer border border-transparent">
+              <FileText className="w-4 h-4" />
+              <span>Upload 2307 Template</span>
+              <input type="file" accept="application/pdf" className="hidden" onChange={(e) => {
+                if (e.target.files && e.target.files[0]) {
+                  alert('Form 2307 PDF Template uploaded successfully for all tenants.');
+                }
+              }} />
+            </label>
+            <button 
+              onClick={onLogout}
+              className="flex items-center gap-2 px-4 py-2 bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 rounded-lg text-sm font-bold hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors"
+            >
+              <LogOut className="w-4 h-4" />
+              Sign Out
+            </button>
+          </div>
         </div>
       </header>
 

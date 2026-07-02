@@ -1,6 +1,10 @@
 import React from 'react';
 
-export const Form2307Module: React.FC = () => {
+interface Form2307ModuleProps {
+  isAdmin?: boolean;
+}
+
+export const Form2307Module: React.FC<Form2307ModuleProps> = ({ isAdmin = false }) => {
   return (
     <div className="space-y-6 max-w-full overflow-x-auto pb-10">
       <div className="flex justify-between items-center no-print">
@@ -9,14 +13,16 @@ export const Form2307Module: React.FC = () => {
           <p className="text-sm text-zinc-500">Certificate of Creditable Tax Withheld at Source</p>
         </div>
         <div className="flex gap-3">
-          <label className="px-4 py-2 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 font-bold text-xs rounded-xl shadow-sm hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors cursor-pointer border border-zinc-200 dark:border-zinc-700">
-            Upload PDF Template
-            <input type="file" accept="application/pdf" className="hidden" onChange={(e) => {
-              if (e.target.files && e.target.files[0]) {
-                alert('Ang PDF upload feature ay handa na. Kasalukuyang inaayos ang integration para sa pag-fill up nito.');
-              }
-            }} />
-          </label>
+          {isAdmin && (
+            <label className="px-4 py-2 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 font-bold text-xs rounded-xl shadow-sm hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors cursor-pointer border border-zinc-200 dark:border-zinc-700">
+              Upload PDF Template
+              <input type="file" accept="application/pdf" className="hidden" onChange={(e) => {
+                if (e.target.files && e.target.files[0]) {
+                  alert('Ang PDF upload feature ay handa na. Kasalukuyang inaayos ang integration para sa pag-fill up nito.');
+                }
+              }} />
+            </label>
+          )}
           <button className="px-4 py-2 bg-blue-600 text-white font-bold text-xs rounded-xl shadow-sm hover:bg-blue-700 transition-colors" onClick={() => window.print()}>
             Print 2307
           </button>

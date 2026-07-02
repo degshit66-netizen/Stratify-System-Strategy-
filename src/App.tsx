@@ -742,7 +742,7 @@ export default function App() {
                 <HRModule showToast={showToast} />
               )}
               {activeTab === 'Form2307' && (
-                <Form2307Module />
+                <Form2307Module isAdmin={currentUser?.role === 'superadmin'} />
               )}
               {activeTab === 'AuditTrail' && (
                 <AuditTrailModule />

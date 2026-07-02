@@ -101,7 +101,7 @@ export const PurchaseModule: React.FC<PurchaseModuleProps> = ({
           </button>
           <button 
             onClick={onOpenExpenseModal}
-            className="flex items-center gap-2 text-xs bg-rose-600 hover:bg-rose-500 text-white font-bold px-4 py-2.5 rounded-xl transition-colors shadow-sm focus:outline-none"
+            className="flex items-center gap-2 text-xs bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-4 py-2.5 rounded-xl transition-colors shadow-sm focus:outline-none"
           >
             <PlusCircle className="w-4 h-4" />
             <span>New Expense</span>
@@ -113,7 +113,7 @@ export const PurchaseModule: React.FC<PurchaseModuleProps> = ({
         <motion.div variants={itemVariants} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-5 rounded-2xl flex items-start justify-between shadow-sm">
           <div className="space-y-2">
             <span className="text-xs font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Purchases Gross</span>
-            <div className="text-lg font-extrabold text-rose-600 dark:text-rose-400">{displayMoney(totalGross)}</div>
+            <div className="text-lg font-extrabold text-zinc-900 dark:text-zinc-100">{displayMoney(totalGross)}</div>
             <div className="text-xs text-zinc-400 font-medium">Operating outflow sum</div>
           </div>
           <div className="bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 p-2.5 rounded-xl">
@@ -170,7 +170,7 @@ export const PurchaseModule: React.FC<PurchaseModuleProps> = ({
                   contentStyle={{ backgroundColor: 'rgba(15, 23, 42, 0.95)', border: 'none', borderRadius: '12px', color: '#fff' }}
                   labelStyle={{ fontWeight: 'bold' }}
                 />
-                <Bar dataKey="Purchases" fill="#ef4444" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="Purchases" fill="#18181b" className="dark:fill-zinc-700" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
