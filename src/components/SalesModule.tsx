@@ -52,7 +52,7 @@ export const SalesModule: React.FC<SalesModuleProps> = ({
   // Group by category
   const categories: Record<string, number> = {};
   salesRows.forEach(r => {
-    const key = r.category || 'Sales Revenue';
+    const key = r.category || 'Sales Revenue - Goods';
     categories[key] = (categories[key] || 0) + r2(parseNum(r.gross));
   });
 

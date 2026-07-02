@@ -177,7 +177,9 @@ export const FSModule: React.FC<FSModuleProps> = ({
       if (strictVat > 0) postEntry('Input VAT', strictVat, true);
       postEntry('Cash in Bank / on Hand', strictCash, false);
       if (strictEwt > 0) postEntry('EWT Payable', strictEwt, false);
-      if (rowArAp > 0) postEntry('Accounts Payable', rowArAp, false);
+      
+      const apAccount = ['Accounts Payable - Trade', 'Accounts Payable - Non-Trade', 'Accrued Expenses'].includes(row.terms || '') ? row.terms : 'Accounts Payable';
+      if (rowArAp > 0) postEntry(apAccount, rowArAp, false);
 
       if (isPast) {
         begCashBalance -= strictCash;

@@ -64,7 +64,7 @@ export const PurchaseModule: React.FC<PurchaseModuleProps> = ({
     .map(([name, value]) => ({ name, value }))
     .sort((a, b) => b.value - a.value);
 
-  const COLORS = ['#3f3f46', '#f59e0b', '#3b82f6', '#8b5cf6', '#ec4899', '#10b981', '#6366f1', '#14b8a6'];
+  const COLORS = ['#ef4444', '#f59e0b', '#3b82f6', '#8b5cf6', '#ec4899', '#10b981', '#6366f1', '#14b8a6'];
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -124,7 +124,7 @@ export const PurchaseModule: React.FC<PurchaseModuleProps> = ({
             <div className="text-lg font-extrabold text-zinc-900 dark:text-zinc-100">{displayMoney(totalGross)}</div>
             <div className="text-xs text-zinc-400 font-medium">Operating outflow sum</div>
           </div>
-          <div className="bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 p-2.5 rounded-xl">
+          <div className="bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 p-2.5 rounded-xl">
             <TrendingDown className="w-5 h-5" />
           </div>
         </motion.div>
@@ -157,7 +157,7 @@ export const PurchaseModule: React.FC<PurchaseModuleProps> = ({
             <div className="text-lg font-extrabold text-zinc-800 dark:text-zinc-100">{displayMoney(avgExpense)}</div>
             <div className="text-xs text-zinc-400 font-medium">Purchases divided by transactions</div>
           </div>
-          <div className="bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 p-2.5 rounded-xl">
+          <div className="bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 p-2.5 rounded-xl">
             <TrendingDown className="w-5 h-5" />
           </div>
         </motion.div>
@@ -178,7 +178,7 @@ export const PurchaseModule: React.FC<PurchaseModuleProps> = ({
                   contentStyle={{ backgroundColor: 'rgba(15, 23, 42, 0.95)', border: 'none', borderRadius: '12px', color: '#fff' }}
                   labelStyle={{ fontWeight: 'bold' }}
                 />
-                <Bar dataKey="Purchases" fill="#18181b" className="dark:fill-zinc-700" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="Purchases" fill="#ef4444" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>

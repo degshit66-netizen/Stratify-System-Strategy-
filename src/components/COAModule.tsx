@@ -129,7 +129,11 @@ export const COAModule: React.FC<COAModuleProps> = ({
     } else if (r.type === 'Expense') {
       const expAcc = getCoaDetails(r.category || r.particulars, r.type).name;
       const expCode = getCodeByName(expAcc);
-      const cashCode = getCodeByName(isCashEntry ? 'Cash in Bank / on Hand' : 'Accounts Payable');
+      let apTerm = 'Accounts Payable';
+      if (['Accounts Payable - Trade', 'Accounts Payable - Non-Trade', 'Accrued Expenses'].includes(r.terms || '')) {
+         apTerm = r.terms || 'Accounts Payable';
+      }
+      const cashCode = getCodeByName(isCashEntry ? 'Cash in Bank / on Hand' : apTerm);
       const vatCode = getCodeByName('Input VAT');
       const ewtCode = getCodeByName('EWT Payable');
 

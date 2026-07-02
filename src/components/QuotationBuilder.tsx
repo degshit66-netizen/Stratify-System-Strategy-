@@ -369,6 +369,13 @@ export const QuotationBuilder: React.FC<QuotationBuilderProps> = ({
             >
               <span>Save Proposal Draft</span>
             </button>
+            <button 
+              onClick={() => window.print()}
+              className="flex-1 flex items-center justify-center gap-2 text-xs bg-zinc-900 hover:bg-zinc-800 text-white font-bold py-2.5 rounded-xl transition-all shadow-sm focus:outline-none"
+            >
+              <Printer className="w-4 h-4" />
+              <span>Print / Save PDF</span>
+            </button>
           </div>
         </motion.div>
       </div>

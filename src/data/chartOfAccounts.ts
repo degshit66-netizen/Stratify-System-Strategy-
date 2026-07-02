@@ -20,6 +20,9 @@ export const BUILTIN_CHART_OF_ACCOUNTS: Record<string, COAAccount> = {
 
   "2010": { name: "Accounts Payable", type: "Liability", normal: "Credit", fs: "Balance Sheet", cashFlow: "Operating" },
   "2011": { name: "AP", type: "Liability", normal: "Credit", fs: "Balance Sheet", cashFlow: "Operating" },
+  "2012": { name: "Accounts Payable - Trade", type: "Liability", normal: "Credit", fs: "Balance Sheet", cashFlow: "Operating" },
+  "2013": { name: "Accounts Payable - Non-Trade", type: "Liability", normal: "Credit", fs: "Balance Sheet", cashFlow: "Operating" },
+  "2014": { name: "Accrued Expenses", type: "Liability", normal: "Credit", fs: "Balance Sheet", cashFlow: "Operating" },
   "2020": { name: "Loans Payable", type: "Liability", normal: "Credit", fs: "Balance Sheet", cashFlow: "Financing" },
   "2030": { name: "SSS Payable", type: "Liability", normal: "Credit", fs: "Balance Sheet", cashFlow: "Operating" },
   "2040": { name: "Philhealth Payable", type: "Liability", normal: "Credit", fs: "Balance Sheet", cashFlow: "Operating" },
@@ -39,8 +42,8 @@ export const BUILTIN_CHART_OF_ACCOUNTS: Record<string, COAAccount> = {
   "3101": { name: "RE", type: "Equity", normal: "Credit", fs: "Balance Sheet", cashFlow: "None" },
   "3110": { name: "Income Summary", type: "Equity", normal: "Credit", fs: "Balance Sheet", cashFlow: "None" },
 
-  "4010": { name: "Sales Revenue", type: "Income", normal: "Credit", fs: "Income Statement", cashFlow: "Operating" },
-  "4011": { name: "Service Income", type: "Income", normal: "Credit", fs: "Income Statement", cashFlow: "Operating" },
+  "4010": { name: "Sales Revenue - Goods", type: "Income", normal: "Credit", fs: "Income Statement", cashFlow: "Operating" },
+  "4011": { name: "Service Revenue", type: "Income", normal: "Credit", fs: "Income Statement", cashFlow: "Operating" },
   "4012": { name: "Sales Return and Allowances", type: "Income", normal: "Debit", fs: "Income Statement", cashFlow: "Operating" },
   "4013": { name: "Other Income", type: "Income", normal: "Credit", fs: "Income Statement", cashFlow: "Operating" },
 
@@ -100,7 +103,12 @@ export const ACCOUNT_ALIASES: Record<string, string> = {
   'purchase return and allowances': 'Purchase Return and Allowances',
   'purchases': 'Purchases',
   'freight in': 'Freight In',
-  'freight out': 'Freight Out'
+  'freight out': 'Freight Out',
+  'sales revenue': 'Sales Revenue - Goods',
+  'sales': 'Sales Revenue - Goods',
+  'sales revenue - goods': 'Sales Revenue - Goods',
+  'service income': 'Service Revenue',
+  'service revenue': 'Service Revenue'
 };
 
 const CUSTOM_COA_STORAGE_KEY = 'stratify_custom_coa_catalog';

@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import * as XLSX from 'xlsx';
 import { 
   Book, 
   FileText, 
@@ -51,8 +52,12 @@ export const BooksModule: React.FC<BooksModuleProps> = ({
   companyConfig,
   showToast
 }) => {
-  const [activeTab, setActiveTab] = useState<'books' | 'relief'>('books');
+  const [activeTab, setActiveTab] = useState<'books' | 'quarterly' | 'relief'>('books');
   const [selectedBook, setSelectedBook] = useState<BookType>('GeneralJournal');
+  
+  // Quarterly Report States
+  const [qReportQuarter, setQReportQuarter] = useState<'Q1' | 'Q2' | 'Q3' | 'Q4'>('Q2');
+  const [qReportYear, setQReportYear] = useState<string>('2026');
   
   // RELIEF Exporter States
   const [reliefQuarter, setReliefQuarter] = useState<'Q1' | 'Q2' | 'Q3' | 'Q4'>('Q2');
@@ -127,7 +132,13 @@ export const BooksModule: React.FC<BooksModuleProps> = ({
       }
       const apAmount = r2(gross - cash - ewt);
       if (apAmount > 0) {
-        lines.push({ accountCode: '2010', accountName: 'Accounts Payable', debit: 0, credit: apAmount });
+        let apAccountName = 'Accounts Payable';
+        let apAccountCode = '2010';
+        if (row.terms === 'Accounts Payable - Trade') { apAccountName = row.terms; apAccountCode = '2012'; }
+        else if (row.terms === 'Accounts Payable - Non-Trade') { apAccountName = row.terms; apAccountCode = '2013'; }
+        else if (row.terms === 'Accrued Expenses') { apAccountName = row.terms; apAccountCode = '2014'; }
+        
+        lines.push({ accountCode: apAccountCode, accountName: apAccountName, debit: 0, credit: apAmount });
       }
       if (ewt > 0) {
         lines.push({ accountCode: '2111', accountName: 'EWT Payable', debit: 0, credit: ewt });
@@ -148,8 +159,22 @@ export const BooksModule: React.FC<BooksModuleProps> = ({
 
   // Helper to filter active ledger rows
   const filteredLedger = useMemo(() => {
-    return ledger.filter(r => r.status !== 'Void' && inPeriod(r, yearFilter, monthFilter, quarterFilter));
-  }, [ledger, yearFilter, monthFilter, quarterFilter]);
+    return ledger.filter(r => {
+      if (r.status === 'Void') return false;
+      if (activeTab === 'quarterly') {
+        const dStr = cleanDate(r.date);
+        const y = dStr.substring(0, 4);
+        if (y !== qReportYear) return false;
+        const m = parseInt(dStr.substring(5, 7), 10);
+        if (qReportQuarter === 'Q1' && (m < 1 || m > 3)) return false;
+        if (qReportQuarter === 'Q2' && (m < 4 || m > 6)) return false;
+        if (qReportQuarter === 'Q3' && (m < 7 || m > 9)) return false;
+        if (qReportQuarter === 'Q4' && (m < 10 || m > 12)) return false;
+        return true;
+      }
+      return inPeriod(r, yearFilter, monthFilter, quarterFilter);
+    });
+  }, [ledger, yearFilter, monthFilter, quarterFilter, activeTab, qReportQuarter, qReportYear]);
 
   // 2. Build the Books of Account Lists
   const booksData = useMemo(() => {
@@ -414,7 +439,7 @@ export const BooksModule: React.FC<BooksModuleProps> = ({
   // RELIEF DAT File Generator
   const handleDownloadReliefDat = () => {
     if (reliefRows.length === 0) {
-      alert('Walang data na makukuha para sa napiling quarter at taon.');
+      alert('No data available for the selected quarter and year.');
       return;
     }
 
@@ -481,14 +506,14 @@ ADDRESS       : ${companyConfig.address}
 PTU NUMBER    : ${companyConfig.ptuNo}
 
 OFFICIAL LOOSE-LEAF BOOK : ${title.toUpperCase()}
-PERIOD COVERED           : ${monthFilter === 'ALL' ? `FULL YEAR ${yearFilter}` : `${monthFilter} ${yearFilter}`}
+PERIOD COVERED           : ${activeTab === 'quarterly' ? `${qReportQuarter} ${qReportYear}` : (monthFilter === 'ALL' ? `FULL YEAR ${yearFilter}` : `${monthFilter} ${yearFilter}`)}
 PAGE NUMBER              : PAGE ${pageNum}
 ================================================================================\r\n\r\n`;
     };
 
     if (selectedBook === 'GeneralJournal') {
       let pageNum = 1;
-      output += addHeader('General Journal (Jurnal na Pangkalahatan)', pageNum);
+      output += addHeader('General Journal', pageNum);
       output += String('DATE').padEnd(12) + ' ' + String('REF').padEnd(12) + ' ' + String('ACCOUNT CODE & TITLE').padEnd(36) + ' ' + String('DEBIT (PHP)').padStart(15) + ' ' + String('CREDIT (PHP)').padStart(15) + '\r\n';
       output += '-'.repeat(96) + '\r\n';
 
@@ -508,7 +533,7 @@ PAGE NUMBER              : PAGE ${pageNum}
     } 
     else if (selectedBook === 'GeneralLedger') {
       let pageNum = 1;
-      output += addHeader('General Ledger (Aklat na Pangkalahatan)', pageNum);
+      output += addHeader('General Ledger', pageNum);
       
       Object.keys(booksData.ledgerGroups).sort().forEach(code => {
         const g = booksData.ledgerGroups[code];
@@ -589,9 +614,96 @@ PAGE NUMBER              : PAGE ${pageNum}
     const blob = new Blob([output], { type: 'text/plain;charset=utf-8' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
-    link.download = `${selectedBook}_${yearFilter}_${monthFilter}.TXT`;
+    link.download = `${selectedBook}_${yearFilter}_${activeTab === 'quarterly' ? qReportQuarter : monthFilter}.TXT`;
     link.click();
     URL.revokeObjectURL(link.href);
+  };
+
+  const handleDownloadLooseleafExcel = () => {
+    let wsData: any[][] = [];
+    const periodCovered = activeTab === 'quarterly' ? `${qReportQuarter} ${qReportYear}` : (monthFilter === 'ALL' ? `FULL YEAR ${yearFilter}` : `${monthFilter} ${yearFilter}`);
+    
+    // Add header rows
+    wsData.push([`BUSINESS NAME: ${companyConfig.companyName}`]);
+    wsData.push([`TIN: ${companyConfig.tin}`]);
+    wsData.push([`ADDRESS: ${companyConfig.address}`]);
+    wsData.push([`PTU NUMBER: ${companyConfig.ptuNo}`]);
+    wsData.push([]);
+    wsData.push([`OFFICIAL LOOSE-LEAF BOOK: ${selectedBook.replace(/([A-Z])/g, ' $1').trim().toUpperCase()}`]);
+    wsData.push([`PERIOD COVERED: ${periodCovered}`]);
+    wsData.push([]);
+
+    if (selectedBook === 'GeneralJournal') {
+      wsData.push(['DATE', 'REF', 'ACCOUNT CODE & TITLE', 'DEBIT (PHP)', 'CREDIT (PHP)']);
+      let totalDr = 0, totalCr = 0;
+      booksData.journalEntries.forEach(row => {
+        row.lines.forEach((l, idx) => {
+          wsData.push([
+            idx === 0 ? row.date : '',
+            idx === 0 ? row.ref : '',
+            `${l.accountCode} - ${l.accountName}`,
+            l.debit || '',
+            l.credit || ''
+          ]);
+          totalDr += l.debit;
+          totalCr += l.credit;
+        });
+      });
+      wsData.push([]);
+      wsData.push(['', '', 'TOTAL', totalDr, totalCr]);
+    } else if (selectedBook === 'GeneralLedger') {
+      wsData.push(['DATE', 'REF', 'PARTICULARS', 'DEBIT (PHP)', 'CREDIT (PHP)', 'BALANCE (PHP)']);
+      booksData.generalLedger.forEach(acct => {
+        wsData.push([`Account: ${acct.code} - ${acct.name}`, '', '', '', '', '']);
+        wsData.push(['', 'Beg. Balance', '', '', '', acct.begBalance]);
+        acct.entries.forEach(e => {
+          wsData.push([e.date, e.ref, '', e.debit || '', e.credit || '', e.balance]);
+        });
+        wsData.push([]);
+      });
+    } else if (selectedBook === 'CashReceipts') {
+      wsData.push(['DATE', 'REF', 'CUSTOMER', 'GROSS RECEIPT', 'TAXABLE RECEIPT', 'EXEMPT', 'OUTPUT VAT']);
+      let sumGross = 0, sumTax = 0, sumEx = 0, sumVat = 0;
+      booksData.cashReceipts.forEach(r => {
+        wsData.push([r.date, r.ref, r.customer, r.gross, r.taxable, r.exempt, r.vat]);
+        sumGross += r.gross; sumTax += r.taxable; sumEx += r.exempt; sumVat += r.vat;
+      });
+      wsData.push([]);
+      wsData.push(['', '', 'TOTAL', sumGross, sumTax, sumEx, sumVat]);
+    } else if (selectedBook === 'CashDisbursements') {
+      wsData.push(['DATE', 'REF', 'PAYEE', 'GROSS PAYMENT', 'TAXABLE', 'EXEMPT', 'INPUT VAT']);
+      let sumGross = 0, sumTax = 0, sumEx = 0, sumVat = 0;
+      booksData.cashDisbursements.forEach(r => {
+        wsData.push([r.date, r.ref, r.payee, r.gross, r.taxable, r.exempt, r.vat]);
+        sumGross += r.gross; sumTax += r.taxable; sumEx += r.exempt; sumVat += r.vat;
+      });
+      wsData.push([]);
+      wsData.push(['', '', 'TOTAL', sumGross, sumTax, sumEx, sumVat]);
+    } else if (selectedBook === 'SalesJournal') {
+      wsData.push(['DATE', 'REF', 'CUSTOMER', 'GROSS SALES', 'TAXABLE SALES', 'EXEMPT', 'OUTPUT VAT']);
+      let sumGross = 0, sumTax = 0, sumEx = 0, sumVat = 0;
+      booksData.salesJournal.forEach(r => {
+        wsData.push([r.date, r.ref, r.customer, r.gross, r.taxable, r.exempt, r.vat]);
+        sumGross += r.gross; sumTax += r.taxable; sumEx += r.exempt; sumVat += r.vat;
+      });
+      wsData.push([]);
+      wsData.push(['', '', 'TOTAL', sumGross, sumTax, sumEx, sumVat]);
+    } else if (selectedBook === 'PurchasesJournal') {
+      wsData.push(['DATE', 'REF', 'VENDOR', 'GROSS PURCHASE', 'TAXABLE PURCHASE', 'EXEMPT', 'INPUT VAT']);
+      let sumGross = 0, sumTax = 0, sumEx = 0, sumVat = 0;
+      booksData.purchasesJournal.forEach(r => {
+        wsData.push([r.date, r.ref, r.vendor, r.gross, r.taxable, r.exempt, r.vat]);
+        sumGross += r.gross; sumTax += r.taxable; sumEx += r.exempt; sumVat += r.vat;
+      });
+      wsData.push([]);
+      wsData.push(['', '', 'TOTAL', sumGross, sumTax, sumEx, sumVat]);
+    }
+
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet(wsData);
+    XLSX.utils.book_append_sheet(wb, ws, "Sheet1");
+    const filename = `${selectedBook}_${yearFilter}_${activeTab === 'quarterly' ? qReportQuarter : monthFilter}.xlsx`;
+    XLSX.writeFile(wb, filename);
   };
 
   const handlePrintBook = () => {
@@ -628,6 +740,17 @@ PAGE NUMBER              : PAGE ${pageNum}
             <span>6 Books of Accounts</span>
           </button>
           <button
+            onClick={() => setActiveTab('quarterly')}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+              activeTab === 'quarterly'
+                ? 'bg-white dark:bg-zinc-850 text-zinc-900 dark:text-white shadow-sm'
+                : 'text-zinc-500 hover:text-zinc-850'
+            }`}
+          >
+            <FileSpreadsheet className="w-3.5 h-3.5" />
+            <span>Quarterly Report</span>
+          </button>
+          <button
             onClick={() => setActiveTab('relief')}
             className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
               activeTab === 'relief'
@@ -659,24 +782,58 @@ PAGE NUMBER              : PAGE ${pageNum}
       </div>
 
       <AnimatePresence mode="wait">
-        {activeTab === 'books' ? (
+        {activeTab === 'books' || activeTab === 'quarterly' ? (
           <motion.div
-            key="books"
+            key={`books-${activeTab}`}
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
             className="space-y-6"
           >
+            {activeTab === 'quarterly' && (
+              <div className="no-print grid grid-cols-1 md:grid-cols-2 gap-4 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-6 shadow-sm text-left">
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 block">Select Quarter</label>
+                  <div className="relative">
+                    <select
+                      value={qReportQuarter}
+                      onChange={(e) => setQReportQuarter(e.target.value as any)}
+                      className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 text-xs font-bold py-2.5 px-3 rounded-xl appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500 pr-10"
+                    >
+                      <option value="Q1">1st Quarter (Jan - Mar)</option>
+                      <option value="Q2">2nd Quarter (Apr - Jun)</option>
+                      <option value="Q3">3rd Quarter (Jul - Sep)</option>
+                      <option value="Q4">4th Quarter (Oct - Dec)</option>
+                    </select>
+                    <ChevronDown className="w-4 h-4 text-zinc-400 absolute right-3 top-3 pointer-events-none" />
+                  </div>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 block">Taxable Year</label>
+                  <div className="relative">
+                    <select
+                      value={qReportYear}
+                      onChange={(e) => setQReportYear(e.target.value)}
+                      className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 text-xs font-bold py-2.5 px-3 rounded-xl appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500 pr-10"
+                    >
+                      <option value="2026">2026</option>
+                      <option value="2025">2025</option>
+                    </select>
+                    <ChevronDown className="w-4 h-4 text-zinc-400 absolute right-3 top-3 pointer-events-none" />
+                  </div>
+                </div>
+              </div>
+            )}
             
             {/* Book Selector Grid (NO-PRINT) */}
             <div className="no-print grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
               {[
-                { id: 'GeneralJournal', label: 'General Journal', desc: 'Jurnal na Pangkalahatan' },
-                { id: 'GeneralLedger', label: 'General Ledger', desc: 'Aklat na Pangkalahatan' },
-                { id: 'CashReceipts', label: 'Cash Receipts', desc: 'Koleksyon ng Cash' },
-                { id: 'CashDisbursements', label: 'Cash Disbursements', desc: 'Pagbayad ng Cash' },
-                { id: 'SalesJournal', label: 'Sales Journal', desc: 'Journal ng Benta' },
-                { id: 'PurchasesJournal', label: 'Purchases Journal', desc: 'Journal ng Pagbili' }
+                { id: 'GeneralJournal', label: 'General Journal', desc: 'General Journal Entries' },
+                { id: 'GeneralLedger', label: 'General Ledger', desc: 'General Ledger Accounts' },
+                { id: 'CashReceipts', label: 'Cash Receipts', desc: 'Cash Collection Receipts' },
+                { id: 'CashDisbursements', label: 'Cash Disbursements', desc: 'Cash Disbursements Ledger' },
+                { id: 'SalesJournal', label: 'Sales Journal', desc: 'Sales Invoices Journal' },
+                { id: 'PurchasesJournal', label: 'Purchases Journal', desc: 'Purchase Bills Journal' }
               ].map(bk => {
                 const isSel = selectedBook === bk.id;
                 return (
@@ -710,15 +867,22 @@ PAGE NUMBER              : PAGE ${pageNum}
                   onClick={handleDownloadLooseleafText}
                   className="flex items-center gap-1.5 text-xs bg-zinc-900 hover:bg-zinc-850 text-white font-bold px-4 py-2.5 rounded-xl transition-all"
                 >
-                  <Download className="w-4 h-4" />
-                  <span>Download Looseleaf TXT</span>
+                  <FileText className="w-4 h-4" />
+                  <span>Download TXT</span>
+                </button>
+                <button
+                  onClick={handleDownloadLooseleafExcel}
+                  className="flex items-center gap-1.5 text-xs bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-4 py-2.5 rounded-xl transition-all"
+                >
+                  <FileSpreadsheet className="w-4 h-4" />
+                  <span>Download Excel</span>
                 </button>
                 <button
                   onClick={handlePrintBook}
-                  className="flex items-center gap-1.5 text-xs bg-blue-400 hover:bg-blue-300 text-zinc-950 font-bold px-4 py-2.5 rounded-xl transition-all"
+                  className="flex items-center gap-1.5 text-xs bg-blue-400 hover:bg-blue-300 text-zinc-950 font-bold px-4 py-2.5 rounded-xl transition-all shadow-md"
                 >
                   <Printer className="w-4 h-4" />
-                  <span>Print Book Report</span>
+                  <span>Print PDF (Loose-leaf)</span>
                 </button>
               </div>
             </div>
@@ -814,7 +978,7 @@ PAGE NUMBER              : PAGE ${pageNum}
                   {selectedBook === 'CashDisbursements' && 'CASH DISBURSEMENTS JOURNAL'}
                 </h3>
                 <p className="text-[11px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
-                  Loose Leaf / BIR Compliance Printout • For the Period: {monthFilter === 'ALL' ? `Year ${yearFilter}` : `${monthFilter} ${yearFilter}`}
+                  Loose Leaf / BIR Compliance Printout • For the Period: {activeTab === 'quarterly' ? `${qReportQuarter} ${qReportYear}` : (monthFilter === 'ALL' ? `Year ${yearFilter}` : `${monthFilter} ${yearFilter}`)}
                 </p>
               </div>
 
@@ -869,7 +1033,7 @@ PAGE NUMBER              : PAGE ${pageNum}
                     <tbody className="divide-y divide-zinc-950 dark:divide-zinc-700">
                       {booksData.journalEntries.length === 0 ? (
                         <tr>
-                          <td colSpan={5} className="py-8 text-center text-zinc-400 font-sans italic border-b border-zinc-950">Walang journal entries sa napiling panahon.</td>
+                          <td colSpan={5} className="py-8 text-center text-zinc-400 font-sans italic border-b border-zinc-950">No journal entries found for the selected period.</td>
                         </tr>
                       ) : (
                         booksData.journalEntries.map(row => (
@@ -925,7 +1089,7 @@ PAGE NUMBER              : PAGE ${pageNum}
                     <tbody className="divide-y divide-zinc-950 dark:divide-zinc-700">
                       {flattenedGLEntries.length === 0 ? (
                         <tr>
-                          <td colSpan={6} className="py-8 text-center text-zinc-400 font-sans italic border-b border-zinc-950">Walang ledger entries sa napiling panahon.</td>
+                          <td colSpan={6} className="py-8 text-center text-zinc-400 font-sans italic border-b border-zinc-950">No ledger entries found for the selected period.</td>
                         </tr>
                       ) : (
                         flattenedGLEntries.map((e, idx) => (
@@ -972,7 +1136,7 @@ PAGE NUMBER              : PAGE ${pageNum}
                     <tbody className="divide-y divide-zinc-950 dark:divide-zinc-700">
                       {booksData.cashReceipts.length === 0 ? (
                         <tr>
-                          <td colSpan={8} className="py-8 text-center text-zinc-400 font-sans italic border-b border-zinc-950">Walang cash receipts sa napiling panahon.</td>
+                          <td colSpan={8} className="py-8 text-center text-zinc-400 font-sans italic border-b border-zinc-950">No cash receipts found for the selected period.</td>
                         </tr>
                       ) : (
                         booksData.cashReceipts.map((r, idx) => (
@@ -1017,7 +1181,7 @@ PAGE NUMBER              : PAGE ${pageNum}
                     <tbody className="divide-y divide-zinc-950 dark:divide-zinc-700">
                       {booksData.cashDisbursements.length === 0 ? (
                         <tr>
-                          <td colSpan={8} className="py-8 text-center text-zinc-400 font-sans italic border-b border-zinc-950">Walang cash disbursements sa napiling panahon.</td>
+                          <td colSpan={8} className="py-8 text-center text-zinc-400 font-sans italic border-b border-zinc-950">No cash disbursements found for the selected period.</td>
                         </tr>
                       ) : (
                         booksData.cashDisbursements.map((r, idx) => (
@@ -1065,7 +1229,7 @@ PAGE NUMBER              : PAGE ${pageNum}
                     <tbody className="divide-y divide-zinc-950 dark:divide-zinc-700">
                       {booksData.salesJournal.length === 0 ? (
                         <tr>
-                          <td colSpan={11} className="py-8 text-center text-zinc-400 font-sans italic border-b border-zinc-950">Walang record ng benta sa napiling panahon.</td>
+                          <td colSpan={11} className="py-8 text-center text-zinc-400 font-sans italic border-b border-zinc-950">No sales records found for the selected period.</td>
                         </tr>
                       ) : (
                         booksData.salesJournal.map((r, idx) => (
@@ -1119,7 +1283,7 @@ PAGE NUMBER              : PAGE ${pageNum}
                     <tbody className="divide-y divide-zinc-950 dark:divide-zinc-700">
                       {booksData.purchasesJournal.length === 0 ? (
                         <tr>
-                          <td colSpan={13} className="py-8 text-center text-zinc-400 font-sans italic border-b border-zinc-950">Walang record ng pagbili sa napiling panahon.</td>
+                          <td colSpan={13} className="py-8 text-center text-zinc-400 font-sans italic border-b border-zinc-950">No purchase records found for the selected period.</td>
                         </tr>
                       ) : (
                         booksData.purchasesJournal.map((r, idx) => (
@@ -1255,7 +1419,7 @@ PAGE NUMBER              : PAGE ${pageNum}
                     type="text"
                     value={reliefSearch}
                     onChange={(e) => setReliefSearch(e.target.value)}
-                    placeholder="Maghanap gamit ang customer, supplier, o TIN..."
+                    placeholder="Search using client, supplier, or TIN..."
                     className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 text-xs py-2 pl-9 pr-4 rounded-xl focus:outline-none focus:ring-1 focus:ring-blue-500"
                   />
                 </div>
@@ -1280,7 +1444,7 @@ PAGE NUMBER              : PAGE ${pageNum}
                     {filteredRelief.length === 0 ? (
                       <tr>
                         <td colSpan={8} className="py-12 text-center text-zinc-400 font-sans italic">
-                          Walang kaukulang transactional records para sa kwarter na ito.
+                          No matching transaction records for this quarter.
                         </td>
                       </tr>
                     ) : (

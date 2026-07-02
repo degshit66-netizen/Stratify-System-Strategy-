@@ -33,12 +33,19 @@ export const DisbursementVoucherModal: React.FC<DisbursementVoucherModalProps> =
   const debitAccountName = entry.category || 'Disbursement Expense';
   const debitAccountCode = entry.accountCode || '5000';
   
-  const creditAccountName = (entry.terms === 'COD' || entry.terms === 'Cash') 
+  const isCash = ['COD', 'Cash', 'COD (Cash Disbursed)', 'COD (Cash Received)'].includes(entry.terms || '');
+  let apTerm = 'Accounts Payable';
+  let apCode = '2010';
+  if (entry.terms === 'Accounts Payable - Trade') { apTerm = entry.terms; apCode = '2012'; }
+  else if (entry.terms === 'Accounts Payable - Non-Trade') { apTerm = entry.terms; apCode = '2013'; }
+  else if (entry.terms === 'Accrued Expenses') { apTerm = entry.terms; apCode = '2014'; }
+
+  const creditAccountName = isCash 
     ? 'Cash and Cash Equivalents' 
-    : 'Accounts Payable';
-  const creditAccountCode = (entry.terms === 'COD' || entry.terms === 'Cash') 
+    : apTerm;
+  const creditAccountCode = isCash 
     ? '1010' 
-    : '2010';
+    : apCode;
 
   return (
     <div className="fixed inset-0 z-[250] flex items-center justify-center overflow-y-auto bg-zinc-950/80 p-4 backdrop-blur-sm">

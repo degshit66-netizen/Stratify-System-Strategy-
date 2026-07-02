@@ -1,25 +1,39 @@
 import React, { useState } from 'react';
 import { motion } from 'motion/react';
 import { Plus, AlertTriangle, CheckCircle, Package } from 'lucide-react';
-import { LedgerEntry } from '../types';
+import { LedgerEntry, COAAccount } from '../types';
 import { r2, displayMoney, parseNum, formatCurrency } from '../utils/helpers';
 
 interface InventoryModuleProps {
   ledger: LedgerEntry[];
+  coa?: COAAccount[];
   showToast: (msg: string, type: 'success' | 'error' | 'info') => void;
 }
 
+const INVENTORY_CATEGORIES = [
+  'Raw Materials',
+  'Finished Goods',
+  'Packaging',
+  'Office Supplies',
+  'Equipment',
+  'Consumables',
+  'Services',
+  'Others'
+];
+
 export const InventoryModule: React.FC<InventoryModuleProps> = ({
   ledger,
+  coa = [],
   showToast
 }) => {
   const [invSku, setInvSku] = useState('');
   const [invItem, setInvItem] = useState('');
-  const [invCategory, setInvCategory] = useState('');
+  const [invCategory, setInvCategory] = useState(INVENTORY_CATEGORIES[0]);
   const [invQty, setInvQty] = useState('');
   const [invCost, setInvCost] = useState('');
   const [invPrice, setInvPrice] = useState('');
   const [invReorder, setInvReorder] = useState('');
+  const [invCogs, setInvCogs] = useState('');
   const [invItemType, setInvItemType] = useState<'Goods' | 'Services'>('Goods');
   
   const [manualInventory, setManualInventory] = useState<any[]>([]);
@@ -101,11 +115,12 @@ export const InventoryModule: React.FC<InventoryModuleProps> = ({
       id: Date.now(),
       sku,
       item: itemDesc,
-      category: invCategory.trim() || (invItemType === 'Services' ? 'Services' : 'General Inventory'),
+      category: invCategory.trim() || (invItemType === 'Services' ? 'Services' : INVENTORY_CATEGORIES[0]),
       qty,
       cost,
       price,
       reorder,
+      cogsAccount: invCogs,
       itemType: invItemType,
       source: 'Manual'
     };
@@ -117,11 +132,12 @@ export const InventoryModule: React.FC<InventoryModuleProps> = ({
 
     setInvSku('');
     setInvItem('');
-    setInvCategory('');
+    setInvCategory(INVENTORY_CATEGORIES[0]);
     setInvQty('');
     setInvCost('');
     setInvPrice('');
     setInvReorder('');
+    setInvCogs('');
     setInvItemType('Goods');
   };
 
@@ -235,13 +251,15 @@ export const InventoryModule: React.FC<InventoryModuleProps> = ({
           </div>
           <div className="space-y-1.5">
             <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Category</label>
-            <input 
-              type="text" 
-              placeholder="Software" 
+            <select 
               value={invCategory}
               onChange={(e) => setInvCategory(e.target.value)}
-              className="w-full text-xs bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3.5 py-2.5 text-zinc-800 dark:text-zinc-200 focus:outline-none focus:border-blue-400"
-            />
+              className="w-full text-xs bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3.5 py-2.5 text-zinc-800 dark:text-zinc-200 focus:outline-none focus:border-blue-400 font-bold"
+            >
+              {INVENTORY_CATEGORIES.map(c => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+            </select>
           </div>
           <div className="space-y-1.5">
             <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Stock Qty</label>
@@ -286,6 +304,19 @@ export const InventoryModule: React.FC<InventoryModuleProps> = ({
               onChange={(e) => setInvReorder(e.target.value)}
               className="w-full text-xs bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3.5 py-2.5 text-zinc-800 dark:text-zinc-200 focus:outline-none disabled:opacity-50"
             />
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Cost of Goods Sold (COGS) Account</label>
+            <select 
+              value={invCogs}
+              onChange={(e) => setInvCogs(e.target.value)}
+              className="w-full text-xs bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3.5 py-2.5 text-zinc-800 dark:text-zinc-200 focus:outline-none focus:border-blue-400 font-bold"
+            >
+              <option value="">Select COGS Account</option>
+              {coa.filter(c => c.type === 'Expense' || c.type === 'Asset').map(c => (
+                <option key={c.code} value={c.name}>{c.name}</option>
+              ))}
+            </select>
           </div>
         </div>
         <div className="pt-2">

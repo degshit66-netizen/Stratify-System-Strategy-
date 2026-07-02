@@ -136,7 +136,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
   // Group by category for Pie Chart
   const categoriesMap: Record<string, number> = {};
   filteredRows.forEach(r => {
-    const key = r.type === 'Sales' ? (r.category || 'Sales Revenue') : (r.category || 'Purchases');
+    const key = r.type === 'Sales' ? (r.category || 'Sales Revenue - Goods') : (r.category || 'Purchases');
     categoriesMap[key] = (categoriesMap[key] || 0) + r2(parseNum(r.gross));
   });
 
@@ -174,10 +174,10 @@ export const Dashboard: React.FC<DashboardProps> = ({
           <h2 className="text-2xl font-display font-bold tracking-tight text-zinc-900 dark:text-white">Enterprise Dashboard</h2>
           <p className="text-sm text-zinc-500 dark:text-zinc-400">Real-time financial status, profit & loss, and operational sync logs.</p>
         </div>
-        <div className="flex items-center gap-2 self-start md:self-auto bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 px-3 py-1.5 rounded-xl text-xs font-semibold tracking-wider uppercase border border-blue-100 dark:border-blue-900/30">
-          <span>{yearFilter === 'ALL' ? 'All Years' : yearFilter}</span>
+        <div className="flex items-center gap-1.5 self-start md:self-auto bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 px-4 py-1.5 rounded-full text-xs font-extrabold tracking-wider uppercase border border-blue-100/70 dark:border-blue-900/30 shadow-sm">
+          <span>{yearFilter === 'ALL' ? 'ALL YEARS' : yearFilter}</span>
           <span className="opacity-40">•</span>
-          <span>{monthFilter === 'ALL' ? 'All Months' : monthFilter}</span>
+          <span>{monthFilter === 'ALL' ? 'ALL MONTHS' : monthFilter}</span>
           {quarterFilter !== 'ALL' && (
             <>
               <span className="opacity-40">•</span>
@@ -187,50 +187,74 @@ export const Dashboard: React.FC<DashboardProps> = ({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <motion.div variants={itemVariants} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-5 rounded-2xl flex items-start justify-between shadow-sm">
-          <div className="space-y-2">
-            <span className="text-xs font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Corporate Identity</span>
-            <div className="text-base font-extrabold text-zinc-800 dark:text-zinc-200 line-clamp-1">{companyName}</div>
-            <div className="text-xs text-zinc-400 font-medium font-mono">{companyTin || 'TIN NOT CONFIGURED'}</div>
-          </div>
-          <div className="bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 p-2.5 rounded-xl">
-            <Building2 className="w-5 h-5" />
-          </div>
-        </motion.div>
-
-        <motion.div variants={itemVariants} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-5 rounded-2xl flex items-start justify-between shadow-sm">
-          <div className="space-y-2">
-            <span className="text-xs font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Gross Sales</span>
-            <div className="text-lg font-extrabold text-emerald-600 dark:text-emerald-400">{displayMoney(totalSalesGross)}</div>
-            <div className="text-xs font-medium text-zinc-400">{sales.length} invoices posted</div>
-          </div>
-          <div className="bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 p-2.5 rounded-xl">
-            <TrendingUp className="w-5 h-5" />
-          </div>
-        </motion.div>
-
-        <motion.div variants={itemVariants} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-5 rounded-2xl flex items-start justify-between shadow-sm">
-          <div className="space-y-2">
-            <span className="text-xs font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Total Purchases</span>
-            <div className="text-lg font-extrabold text-zinc-900 dark:text-zinc-100">{displayMoney(totalPurchGross)}</div>
-            <div className="text-xs font-medium text-zinc-400">{purchases.length} purchases posted</div>
-          </div>
-          <div className="bg-zinc-50 dark:bg-zinc-950/40 text-zinc-900 dark:text-zinc-100 p-2.5 rounded-xl">
-            <TrendingDown className="w-5 h-5" />
-          </div>
-        </motion.div>
-
-        <motion.div variants={itemVariants} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-5 rounded-2xl flex items-start justify-between shadow-sm">
-          <div className="space-y-2">
-            <span className="text-xs font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Net Business Value</span>
-            <div className={`text-lg font-extrabold ${netIncome >= 0 ? 'text-blue-600 dark:text-blue-400' : 'text-rose-600 dark:text-rose-400'}`}>
-              {displayMoney(netIncome)}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+        {/* Card 1: Corporate Identity */}
+        <motion.div 
+          variants={itemVariants} 
+          className="bg-zinc-200/90 dark:bg-zinc-800/80 p-2 rounded-3xl border border-zinc-300/60 dark:border-zinc-700/60 shadow-sm"
+        >
+          <div className="bg-white dark:bg-zinc-900 p-5 rounded-2xl border border-zinc-100 dark:border-zinc-800/50 flex items-start justify-between h-full shadow-inner">
+            <div className="space-y-2 text-left">
+              <span className="text-[10px] font-extrabold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 block">CORPORATE IDENTITY</span>
+              <div className="text-base font-black text-zinc-800 dark:text-zinc-100 leading-tight line-clamp-1">{companyName}</div>
+              <div className="text-xs text-zinc-400 dark:text-zinc-500 font-bold font-mono tracking-wider">{companyTin || 'TIN NOT CONFIGURED'}</div>
             </div>
-            <div className="text-xs font-medium text-zinc-400">{netIncome < 0 ? 'Operating deficit' : 'Healthy margin profile'}</div>
+            <div className="bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 p-2.5 rounded-xl shrink-0 ml-2">
+              <Building2 className="w-5 h-5" />
+            </div>
           </div>
-          <div className={`p-2.5 rounded-xl ${netIncome >= 0 ? 'bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400' : 'bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400'}`}>
-            <DollarSign className="w-5 h-5" />
+        </motion.div>
+
+        {/* Card 2: Gross Sales */}
+        <motion.div 
+          variants={itemVariants} 
+          className="bg-zinc-200/90 dark:bg-zinc-800/80 p-2 rounded-3xl border border-zinc-300/60 dark:border-zinc-700/60 shadow-sm"
+        >
+          <div className="bg-white dark:bg-zinc-900 p-5 rounded-2xl border border-zinc-100 dark:border-zinc-800/50 flex items-start justify-between h-full shadow-inner">
+            <div className="space-y-2 text-left">
+              <span className="text-[10px] font-extrabold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 block">GROSS SALES</span>
+              <div className="text-lg font-black text-emerald-600 dark:text-emerald-400 leading-none">{displayMoney(totalSalesGross)}</div>
+              <div className="text-xs font-semibold text-zinc-400 dark:text-zinc-500">{sales.length} invoices posted</div>
+            </div>
+            <div className="bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 p-2.5 rounded-xl shrink-0 ml-2">
+              <TrendingUp className="w-5 h-5" />
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Card 3: Total Purchases */}
+        <motion.div 
+          variants={itemVariants} 
+          className="bg-zinc-200/90 dark:bg-zinc-800/80 p-2 rounded-3xl border border-zinc-300/60 dark:border-zinc-700/60 shadow-sm"
+        >
+          <div className="bg-white dark:bg-zinc-900 p-5 rounded-2xl border border-zinc-100 dark:border-zinc-800/50 flex items-start justify-between h-full shadow-inner">
+            <div className="space-y-2 text-left">
+              <span className="text-[10px] font-extrabold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 block">TOTAL PURCHASES</span>
+              <div className="text-lg font-black text-zinc-900 dark:text-zinc-100 leading-none">{displayMoney(totalPurchGross)}</div>
+              <div className="text-xs font-semibold text-zinc-400 dark:text-zinc-500">{purchases.length} purchases posted</div>
+            </div>
+            <div className="bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 p-2.5 rounded-xl shrink-0 ml-2">
+              <TrendingDown className="w-5 h-5" />
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Card 4: Net Business Value */}
+        <motion.div 
+          variants={itemVariants} 
+          className="bg-zinc-200/90 dark:bg-zinc-800/80 p-2 rounded-3xl border border-zinc-300/60 dark:border-zinc-700/60 shadow-sm"
+        >
+          <div className="bg-white dark:bg-zinc-900 p-5 rounded-2xl border border-zinc-100 dark:border-zinc-800/50 flex items-start justify-between h-full shadow-inner">
+            <div className="space-y-2 text-left">
+              <span className="text-[10px] font-extrabold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 block">NET BUSINESS VALUE</span>
+              <div className={`text-lg font-black leading-none ${netIncome >= 0 ? 'text-blue-600 dark:text-blue-400' : 'text-rose-600 dark:text-rose-400'}`}>
+                {displayMoney(netIncome)}
+              </div>
+              <div className="text-xs font-semibold text-zinc-400 dark:text-zinc-500">{netIncome < 0 ? 'Operating deficit' : 'Healthy margin profile'}</div>
+            </div>
+            <div className={`p-2.5 rounded-xl shrink-0 ml-2 ${netIncome >= 0 ? 'bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400' : 'bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400'}`}>
+              <DollarSign className="w-5 h-5" />
+            </div>
           </div>
         </motion.div>
       </div>
@@ -380,7 +404,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 />
                 <Legend iconType="circle" wrapperStyle={{ fontSize: 11, paddingTop: 10 }} />
                 <Bar dataKey="Sales" fill="#10b981" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="Purchases" fill="#18181b" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="Purchases" fill="#ef4444" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>

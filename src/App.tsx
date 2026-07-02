@@ -653,18 +653,17 @@ export default function App() {
       {/* HEADER SECTION (NO-PRINT) */}
       <header className="bg-gradient-to-r from-blue-950 via-blue-900 to-indigo-950 border-b border-blue-900 text-white px-6 py-4 flex items-center justify-between no-print shadow-md shrink-0 z-30">
         <div className="flex items-center gap-4">
-          {currentTenant?.logo ? (
-            <img src={currentTenant.logo} alt="Logo" className="h-16 w-16 md:h-20 md:w-20 rounded-xl object-cover shadow-inner bg-white p-1" />
-          ) : companyConfig.logoUrl ? (
-            <img src={companyConfig.logoUrl} alt="Logo" className="h-16 w-16 md:h-20 md:w-20 rounded-xl object-cover shadow-inner bg-white p-1" />
-          ) : (
-            <div className="bg-gradient-to-br from-yellow-400 to-amber-600 text-zinc-950 p-4 md:p-5 rounded-xl font-bold tracking-tight text-2xl md:text-3xl shadow-inner flex items-center justify-center h-16 w-16 md:h-20 md:w-20">
-              {currentTenant ? currentTenant.name.charAt(0).toUpperCase() : 'ST'}
-            </div>
-          )}
+          <img 
+            src={currentTenant?.logo || companyConfig.logoUrl || 'https://i.postimg.cc/5yGwSWWR/1782659487700.png'} 
+            alt="Logo" 
+            className="h-14 w-14 rounded-2xl object-cover shadow-md shrink-0"
+            onError={(e) => {
+              (e.target as HTMLImageElement).src = 'https://i.postimg.cc/5yGwSWWR/1782659487700.png';
+            }}
+          />
           <div className="leading-tight">
             <h1 className="text-xl font-display font-bold uppercase tracking-widest text-white">{currentTenant ? currentTenant.name : 'STRATIFY'}</h1>
-            <p className="text-xs font-semibold text-blue-200 tracking-wide">(Simplify + Stratigy)</p>
+            <p className="text-xs font-semibold text-blue-200 tracking-wide">(Strategy + Simplify)</p>
             <p className="text-[10px] text-yellow-400 font-bold uppercase tracking-widest mt-0.5">System Development</p>
           </div>
         </div>
@@ -818,8 +817,8 @@ export default function App() {
                         }`}
                       >
                         <div className="flex items-center">
-                          <div className={`mr-2.5 transition-colors ${isActive ? 'text-yellow-400' : 'text-blue-300/70 group-hover:text-yellow-400/80'}`}>
-                            {item.icon}
+                          <div className={`mr-3 transition-colors ${isActive ? 'text-yellow-400' : 'text-blue-300/70 group-hover:text-yellow-400/80'}`}>
+                            {React.cloneElement(item.icon, { className: 'w-4 h-4' })}
                           </div>
                           <span>{item.label}</span>
                         </div>
@@ -927,6 +926,7 @@ export default function App() {
               {activeTab === 'Inventory' && (
                 <InventoryModule 
                   ledger={ledger}
+                  coa={coa}
                   showToast={showToast}
                 />
               )}
@@ -1016,6 +1016,7 @@ export default function App() {
         initialType={entryModalType}
         scanResult={scanResult}
         initialData={editingEntry}
+        ledger={ledger}
       />
 
       <SettingsModal 
