@@ -112,11 +112,9 @@ export const HRModule: React.FC<HRModuleProps> = ({ showToast }) => {
   };
 
   const deleteEmployee = (id: string) => {
-    if (window.confirm('Are you sure you want to remove this employee?')) {
-      const updated = employees.filter(emp => emp.id !== id);
-      saveEmployees(updated);
-      showToast('Employee removed.', 'success');
-    }
+    const updated = employees.filter(emp => emp.id !== id);
+    saveEmployees(updated);
+    showToast('Employee removed.', 'success');
   };
 
   return (

@@ -467,9 +467,9 @@ export const EntryModal: React.FC<EntryModalProps> = ({
         const opt = {
           margin: 0,
           filename: `BIR_2307_${payorName.replace(/\s+/g, "_")}_${date}.pdf`,
-          image: { type: "jpeg", quality: 1.0 },
+          image: { type: "jpeg" as const, quality: 1.0 },
           html2canvas: { scale: 2, useCORS: true, logging: false },
-          jsPDF: { unit: "in", format: "letter", orientation: "portrait" },
+          jsPDF: { unit: "in" as const, format: "letter", orientation: "portrait" as const },
         };
 
         html2pdf()
@@ -596,7 +596,7 @@ export const EntryModal: React.FC<EntryModalProps> = ({
     setGrossInput("");
     setTaxType("Vatable");
     setStatus("Cleared");
-    setTerms(type === "Expense" || type === "Purchase" ? "COD (Cash Disbursed)" : "COD (Cash Received)");
+    setTerms(type === "Expense" ? "COD (Cash Disbursed)" : "COD (Cash Received)");
     setCashInput("");
     setArApInput("");
     setItemType("Goods");
@@ -792,7 +792,7 @@ export const EntryModal: React.FC<EntryModalProps> = ({
                         const val = e.target.value as "Sales" | "Expense";
                         setType(val);
                         setAccountCode("");
-                        const newTerms = val === "Expense" || val === "Purchase" ? "COD (Cash Disbursed)" : "COD (Cash Received)";
+                        const newTerms = val === "Expense" ? "COD (Cash Disbursed)" : "COD (Cash Received)";
                         setTerms(newTerms);
                         if (val === "Sales") {
                           setEnableCwt(false);
@@ -1136,7 +1136,7 @@ export const EntryModal: React.FC<EntryModalProps> = ({
                       onChange={(e) => handleTermsChange(e.target.value)}
                       className="w-full text-xs bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl px-2.5 py-2.5 text-zinc-800 dark:text-zinc-200 focus:outline-none"
                     >
-                      {type === "Expense" || type === "Purchase" ? (
+                      {type === "Expense" ? (
                         <>
                           <option value="Accounts Payable - Trade">Accounts Payable - Trade</option>
                           <option value="Accounts Payable - Non-Trade">Accounts Payable - Non-Trade</option>

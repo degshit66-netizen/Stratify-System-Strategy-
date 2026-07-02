@@ -298,9 +298,9 @@ export const Form2307Module: React.FC<Form2307ModuleProps> = ({
     const opt = {
       margin: 0,
       filename: `BIR_2307_${payee.name || "Payee"}_${periodFrom.replace(/\//g, "-") || "Period"}.pdf`,
-      image: { type: "jpeg", quality: 1.0 },
+      image: { type: "jpeg" as const, quality: 1.0 },
       html2canvas: { scale: 2, useCORS: true, logging: false },
-      jsPDF: { unit: "in", format: "letter", orientation: "portrait" },
+      jsPDF: { unit: "in" as const, format: "letter", orientation: "portrait" as const },
     };
 
     html2pdf().set(opt).from(element).save();

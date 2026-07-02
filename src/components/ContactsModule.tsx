@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Plus, Search, Edit2, Trash2, X, Users, Tag, Building, TrendingUp } from 'lucide-react';
+import { Plus, Search, Edit2, Trash2, X, Users, Tag, Building, TrendingUp, TrendingDown } from 'lucide-react';
 import { ContactMaster, LedgerEntry } from '../types';
 import { r2, displayMoney, parseNum, formatCurrency } from '../utils/helpers';
 
@@ -180,7 +180,6 @@ export const ContactsModule: React.FC<ContactsModuleProps> = ({
   };
 
   const handleDelete = (id: number | string) => {
-    if (!confirm('Are you sure you want to delete this manual contact record?')) return;
     const nextList = manualContacts.filter(c => String(c.id) !== String(id));
     setManualInventory(nextList);
     localStorage.setItem('stratify_contacts', JSON.stringify(nextList));
@@ -233,7 +232,9 @@ export const ContactsModule: React.FC<ContactsModuleProps> = ({
   const clientsCount = finalContacts.filter(r => r.type === 'Client' || r.type === 'Client & Supplier').length;
   const payorsCount = finalContacts.filter(r => r.type === 'Payor').length;
   const suppliersCount = finalContacts.filter(r => r.type === 'Supplier' || r.type === 'Client & Supplier').length;
-  const totalCRMValue = finalContacts.reduce((sum, r) => sum + r2(parseNum(r.sales) + parseNum(r.purchases)), 0);
+  
+  const totalAR = finalContacts.reduce((sum, r) => sum + r2(parseNum(r.sales)), 0);
+  const totalAP = finalContacts.reduce((sum, r) => sum + r2(parseNum(r.purchases)), 0);
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -285,9 +286,9 @@ export const ContactsModule: React.FC<ContactsModuleProps> = ({
 
         <motion.div variants={itemVariants} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-5 rounded-2xl flex items-start justify-between shadow-sm">
           <div className="space-y-2">
-            <span className="text-xs font-bold uppercase tracking-wider text-zinc-400">Master Payors</span>
+            <span className="text-xs font-bold uppercase tracking-wider text-zinc-400">Master Customers / Payors</span>
             <div className="text-lg font-extrabold text-zinc-800 dark:text-zinc-100">{payorsCount}</div>
-            <div className="text-xs text-zinc-400 font-medium">Other payers and cash references</div>
+            <div className="text-xs text-zinc-400 font-medium">Other customers and cash references</div>
           </div>
           <div className="bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 p-2.5 rounded-xl">
             <Tag className="w-5 h-5" />
@@ -305,33 +306,49 @@ export const ContactsModule: React.FC<ContactsModuleProps> = ({
           </div>
         </motion.div>
 
-        <motion.div variants={itemVariants} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-5 rounded-2xl flex items-start justify-between shadow-sm">
-          <div className="space-y-2">
-            <span className="text-xs font-bold uppercase tracking-wider text-zinc-400">Aggregate Volume</span>
-            <div className="text-lg font-extrabold text-emerald-600 dark:text-emerald-400">{displayMoney(totalCRMValue)}</div>
-            <div className="text-xs text-zinc-400 font-medium">Sum of cumulative trade values</div>
-          </div>
-          <div className="bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 p-2.5 rounded-xl">
-            <TrendingUp className="w-5 h-5" />
-          </div>
-        </motion.div>
+        {activeTab === 'Supplier' ? (
+          <motion.div variants={itemVariants} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-5 rounded-2xl flex items-start justify-between shadow-sm">
+            <div className="space-y-2">
+              <span className="text-xs font-bold uppercase tracking-wider text-zinc-400">Total Accounts Payable (AP)</span>
+              <div className="text-lg font-extrabold text-rose-600 dark:text-rose-400">{displayMoney(totalAP)}</div>
+              <div className="text-xs text-zinc-400 font-medium">Kabuuang utang sa lahat ng suppliers</div>
+            </div>
+            <div className="bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 p-2.5 rounded-xl">
+              <TrendingDown className="w-5 h-5" />
+            </div>
+          </motion.div>
+        ) : (
+          <motion.div variants={itemVariants} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-5 rounded-2xl flex items-start justify-between shadow-sm">
+            <div className="space-y-2">
+              <span className="text-xs font-bold uppercase tracking-wider text-zinc-400">Total Accounts Receivable (AR)</span>
+              <div className="text-lg font-extrabold text-emerald-600 dark:text-emerald-400">{displayMoney(totalAR)}</div>
+              <div className="text-xs text-zinc-400 font-medium">Kabuuang utang ng lahat ng customer</div>
+            </div>
+            <div className="bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 p-2.5 rounded-xl">
+              <TrendingUp className="w-5 h-5" />
+            </div>
+          </motion.div>
+        )}
       </div>
 
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pt-2">
         <div className="flex border-b border-zinc-100 dark:border-zinc-800 w-full sm:w-auto">
-          {(['Client', 'Payor', 'Supplier'] as const).map(tab => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`px-5 py-3 text-xs font-bold border-b-2 uppercase tracking-wider transition-colors ${
-                activeTab === tab
-                  ? 'border-blue-400 text-blue-500'
-                  : 'border-transparent text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200'
-              }`}
-            >
-              {tab}s
-            </button>
-          ))}
+          {(['Client', 'Payor', 'Supplier'] as const).map(tab => {
+            const tabLabel = tab === 'Payor' ? 'Customers / Payors' : tab === 'Supplier' ? 'Vendors / Suppliers' : 'Clients';
+            return (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={`px-5 py-3 text-xs font-bold border-b-2 uppercase tracking-wider transition-colors ${
+                  activeTab === tab
+                    ? 'border-blue-400 text-blue-500'
+                    : 'border-transparent text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200'
+                }`}
+              >
+                {tabLabel}
+              </button>
+            );
+          })}
         </div>
 
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
@@ -492,7 +509,7 @@ export const ContactsModule: React.FC<ContactsModuleProps> = ({
                         className="w-full text-xs bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3 py-2.5 text-zinc-800 dark:text-zinc-200 focus:outline-none"
                       >
                         <option value="Client">Client</option>
-                        <option value="Payor">Payor</option>
+                        <option value="Payor">Customer / Payor</option>
                         <option value="Supplier">Supplier</option>
                         <option value="Client & Supplier">Client & Supplier</option>
                       </select>

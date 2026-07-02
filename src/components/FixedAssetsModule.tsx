@@ -8,22 +8,28 @@ import {
   Tooltip, 
   ResponsiveContainer 
 } from 'recharts';
-import { LedgerEntry, FixedAsset } from '../types';
+import { LedgerEntry, FixedAsset, COAAccount } from '../types';
 import { r2, displayMoney, parseNum, cleanDate, formatCurrency } from '../utils/helpers';
 
 interface FixedAssetsModuleProps {
   ledger: LedgerEntry[];
+  coa?: COAAccount[];
   showToast: (msg: string, type: 'success' | 'error' | 'info') => void;
 }
 
 export const FixedAssetsModule: React.FC<FixedAssetsModuleProps> = ({
   ledger,
+  coa = [],
   showToast
 }) => {
   const [assetName, setAssetName] = useState('');
   const [assetAcquired, setAssetAcquired] = useState('');
   const [assetCost, setAssetCost] = useState('');
   const [assetLife, setAssetLife] = useState(5);
+  const [assetAccount, setAssetAccount] = useState('');
+  const [accDepAccount, setAccDepAccount] = useState('');
+  const [depreciationMethod, setDepreciationMethod] = useState<'Straight-Line' | 'Declining Balance' | 'Sum-of-Years-Digits'>('Straight-Line');
+  const [salvageValue, setSalvageValue] = useState('');
   const [manualAssets, setManualAssets] = useState<FixedAsset[]>([]);
 
   React.useEffect(() => {
@@ -87,7 +93,11 @@ export const FixedAssetsModule: React.FC<FixedAssetsModuleProps> = ({
       acquired: assetAcquired,
       cost,
       lifeYears: assetLife,
-      source: 'Manual'
+      source: 'Manual',
+      assetAccountName: assetAccount,
+      accDepAccountName: accDepAccount,
+      depreciationMethod,
+      salvageValue: parseNum(salvageValue)
     };
 
     const nextList = [newAsset, ...manualAssets];
@@ -99,6 +109,10 @@ export const FixedAssetsModule: React.FC<FixedAssetsModuleProps> = ({
     setAssetAcquired('');
     setAssetCost('');
     setAssetLife(5);
+    setAssetAccount('');
+    setAccDepAccount('');
+    setDepreciationMethod('Straight-Line');
+    setSalvageValue('');
   };
 
   const totalCost = allAssets.reduce((sum, a) => sum + r2(parseNum(a.cost)), 0);
@@ -171,12 +185,12 @@ export const FixedAssetsModule: React.FC<FixedAssetsModuleProps> = ({
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <motion.div variants={itemVariants} className="lg:col-span-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-5 rounded-2xl shadow-sm space-y-4">
           <h3 className="text-sm font-bold text-zinc-800 dark:text-zinc-200 uppercase tracking-wider">Register Fixed Capital Asset</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-left">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-left items-end">
             <div className="space-y-1.5">
               <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Asset Name</label>
               <input 
                 type="text" 
-                placeholder="Office Desktop M4" 
+                placeholder="e.g. Office Desktop M4" 
                 value={assetName}
                 onChange={(e) => setAssetName(e.target.value)}
                 className="w-full text-xs bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3.5 py-2.5 text-zinc-800 dark:text-zinc-200 focus:outline-none focus:border-blue-400"
@@ -190,6 +204,19 @@ export const FixedAssetsModule: React.FC<FixedAssetsModuleProps> = ({
                 onChange={(e) => setAssetAcquired(e.target.value)}
                 className="w-full text-xs bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3.5 py-2.5 text-zinc-800 dark:text-zinc-200 focus:outline-none"
               />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Asset Account (COA)</label>
+              <select
+                value={assetAccount}
+                onChange={(e) => setAssetAccount(e.target.value)}
+                className="w-full text-xs bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3.5 py-2.5 text-zinc-800 dark:text-zinc-200 focus:outline-none focus:border-blue-400"
+              >
+                <option value="">-- Select Asset Account --</option>
+                {coa.filter(c => c.type === 'Asset').map(c => (
+                  <option key={c.code} value={c.name}>{c.name}</option>
+                ))}
+              </select>
             </div>
             <div className="space-y-1.5">
               <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Capital Cost</label>
@@ -211,15 +238,41 @@ export const FixedAssetsModule: React.FC<FixedAssetsModuleProps> = ({
                 className="w-full text-xs bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3.5 py-2.5 text-zinc-800 dark:text-zinc-200 focus:outline-none"
               />
             </div>
-          </div>
-          <div className="pt-2">
-            <button 
-              onClick={handleSaveAsset}
-              className="flex items-center gap-2 text-xs bg-zinc-900 hover:bg-zinc-800 text-white font-bold px-5 py-2.5 rounded-xl transition-colors shadow-sm focus:outline-none"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Save Asset Registry Row</span>
-            </button>
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Accumulated Depreciation Account (COA)</label>
+              <select
+                value={accDepAccount}
+                onChange={(e) => setAccDepAccount(e.target.value)}
+                className="w-full text-xs bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3.5 py-2.5 text-zinc-800 dark:text-zinc-200 focus:outline-none focus:border-blue-400"
+              >
+                <option value="">-- Select Acc. Dep. Account --</option>
+                {coa.filter(c => c.type === 'Asset' || c.type === 'Expense').map(c => (
+                  <option key={c.code} value={c.name}>{c.name}</option>
+                ))}
+              </select>
+            </div>
+            <div className="pb-0.5 pt-2">
+              <button 
+                onClick={handleSaveAsset}
+                className="flex items-center justify-center gap-2 text-xs bg-zinc-900 hover:bg-zinc-800 text-white font-bold px-5 py-2.5 rounded-xl transition-colors shadow-sm focus:outline-none w-full sm:w-auto"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Save Asset Registry Row</span>
+              </button>
+            </div>
+            <div className="hidden lg:block"></div>
+            <div className="space-y-1.5 pt-2">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Depreciation Method</label>
+              <select
+                value={depreciationMethod}
+                onChange={(e) => setDepreciationMethod(e.target.value as any)}
+                className="w-full text-xs bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3.5 py-2.5 text-zinc-800 dark:text-zinc-200 focus:outline-none focus:border-blue-400"
+              >
+                <option value="Straight-Line">Straight-Line</option>
+                <option value="Declining Balance">Declining Balance</option>
+                <option value="Sum-of-Years-Digits">Sum-of-Years-Digits</option>
+              </select>
+            </div>
           </div>
         </motion.div>
 

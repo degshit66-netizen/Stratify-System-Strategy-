@@ -1,23 +1,113 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { Plus, Bell, Calendar, Trash2, Edit3, CheckCircle, Clock, AlertTriangle } from 'lucide-react';
-import { SchedulerTask } from '../types';
+import { SchedulerTask, CompanyConfig, TaxpayerType } from '../types';
 import { r2, cleanDate } from '../utils/helpers';
+
+const COMMON_TAX_EVENTS = [
+  { id: '2550M', formCode: '2550M', title: 'BIR 2550M (Monthly Value-Added Tax)', defaultModule: 'Value-Added Tax', type: 'monthly', dueDay: 20 },
+  { id: '1601C', formCode: '1601C', title: 'BIR 1601-C (Monthly Withholding Tax on Compensation)', defaultModule: 'Withholding Tax', type: 'monthly', dueDay: 10 },
+  { id: '0619E', formCode: '0619E', title: 'BIR 0619-E (Monthly Creditable Income Taxes)', defaultModule: 'Withholding Tax', type: 'monthly', dueDay: 10 },
+  { id: '2551Q', formCode: '2551Q', title: 'BIR 2551Q (Quarterly Percentage Tax)', defaultModule: 'Percentage Tax', type: 'quarterly', dueDay: 25 },
+  { id: '1702Q', formCode: '1702Q', title: 'BIR 1702Q (Quarterly Income Tax)', defaultModule: 'Income Tax', type: 'quarterly', dueDay: 60 }, // 60 days after quarter
+  { id: '1702RT', formCode: '1702RT', title: 'BIR 1702-RT (Annual Income Tax)', defaultModule: 'Income Tax', type: 'annual', dueDay: 105 }, // April 15
+  { id: 'LOOSE', formCode: 'LOOSE', title: 'Submit Bound Loose-Leaf Books (Affidavit Annex C)', defaultModule: 'Loose Leaf Compliance', type: 'annual', dueDay: 15 }, // Jan 15
+  { id: 'CUSTOM', formCode: 'CUSTOM', title: 'Custom Event / Other', defaultModule: 'General Ledger', type: 'custom', dueDay: 0 }
+];
+
+export function getApplicableTaxForms(taxpayerType: TaxpayerType) {
+  return COMMON_TAX_EVENTS.filter((form) => {
+    if (taxpayerType === TaxpayerType.VAT_REGISTERED && form.formCode === '2551Q') {
+      return false;
+    }
+    if (taxpayerType === TaxpayerType.NON_VAT_REGISTERED && (form.formCode === '2550M' || form.formCode === '2550Q')) {
+      return false;
+    }
+    return true; 
+  });
+}
+
+const getNextDeadline = (type: string, dueDay: number) => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth();
+  const date = now.getDate();
+
+  if (type === 'monthly') {
+    let targetMonth = month;
+    let targetYear = year;
+    if (date > dueDay) {
+      targetMonth++;
+      if (targetMonth > 11) {
+        targetMonth = 0;
+        targetYear++;
+      }
+    }
+    return `${targetYear}-${String(targetMonth + 1).padStart(2, '0')}-${String(dueDay).padStart(2, '0')}`;
+  } else if (type === 'quarterly') {
+    const quarter = Math.floor(month / 3);
+    let nextQuarterMonth = (quarter + 1) * 3; // Start of next quarter (e.g., April 1 for Jan-Mar quarter)
+    let nextYear = year;
+    if (nextQuarterMonth > 11) {
+      nextQuarterMonth = 0;
+      nextYear++;
+    }
+    
+    const baseDate = new Date(nextYear, nextQuarterMonth, 1);
+    // For 1702Q, it's 60 days after the quarter ends.
+    // For 2551Q, it's 25 days after the quarter ends.
+    // dueDay represents the number of days after the quarter ends.
+    baseDate.setDate(baseDate.getDate() + dueDay - 1); 
+    
+    // Check if this date has already passed
+    if (now > baseDate) {
+      nextQuarterMonth += 3;
+      if (nextQuarterMonth > 11) {
+        nextQuarterMonth -= 12;
+        nextYear++;
+      }
+      const newBaseDate = new Date(nextYear, nextQuarterMonth, 1);
+      newBaseDate.setDate(newBaseDate.getDate() + dueDay - 1);
+      return `${newBaseDate.getFullYear()}-${String(newBaseDate.getMonth() + 1).padStart(2, '0')}-${String(newBaseDate.getDate()).padStart(2, '0')}`;
+    }
+    
+    return `${baseDate.getFullYear()}-${String(baseDate.getMonth() + 1).padStart(2, '0')}-${String(baseDate.getDate()).padStart(2, '0')}`;
+  } else if (type === 'annual') {
+    let targetMonth = 0;
+    let targetDate = dueDay;
+    if (dueDay === 105) { // April 15
+      targetMonth = 3;
+      targetDate = 15;
+    } else if (dueDay === 15) { // Jan 15
+      targetMonth = 0;
+      targetDate = 15;
+    }
+    let nextYear = year;
+    if (month > targetMonth || (month === targetMonth && date > targetDate)) {
+      nextYear++;
+    }
+    return `${nextYear}-${String(targetMonth + 1).padStart(2, '0')}-${String(targetDate).padStart(2, '0')}`;
+  }
+  return '';
+};
 
 interface SchedulerModuleProps {
   showToast: (msg: string, type: 'success' | 'error' | 'info') => void;
   tasks: SchedulerTask[];
   setTasks: (tasks: SchedulerTask[]) => void;
+  companyConfig?: CompanyConfig;
 }
 
 export const SchedulerModule: React.FC<SchedulerModuleProps> = ({
   showToast,
   tasks,
-  setTasks
+  setTasks,
+  companyConfig
 }) => {
   const [editId, setEditId] = useState<number | null>(null);
 
   // Form Fields
+  const [taskTemplate, setTaskTemplate] = useState('CUSTOM');
   const [taskTitle, setTaskTitle] = useState('');
   const [taskDue, setTaskDue] = useState('');
   const [taskModule, setTaskModule] = useState('General Ledger');
@@ -56,8 +146,26 @@ export const SchedulerModule: React.FC<SchedulerModuleProps> = ({
     setTaskStatus('Open');
   };
 
+  const handleTemplateChange = (id: string) => {
+    setTaskTemplate(id);
+    if (id === 'CUSTOM') {
+      setTaskTitle('');
+      setTaskDue('');
+      setTaskModule('General Ledger');
+      return;
+    }
+    
+    const template = COMMON_TAX_EVENTS.find(t => t.id === id);
+    if (template) {
+      setTaskTitle(template.title);
+      setTaskModule(template.defaultModule);
+      setTaskDue(getNextDeadline(template.type, template.dueDay));
+    }
+  };
+
   const handleEdit = (task: SchedulerTask) => {
     setEditId(task.id);
+    setTaskTemplate('CUSTOM');
     setTaskTitle(task.title);
     setTaskDue(task.dueDate);
     setTaskModule(task.module);
@@ -65,7 +173,6 @@ export const SchedulerModule: React.FC<SchedulerModuleProps> = ({
   };
 
   const handleDelete = (id: number) => {
-    if (!confirm('Are you sure you want to remove this task?')) return;
     const nextList = tasks.filter(t => t.id !== id);
     setTasks(nextList);
     localStorage.setItem('stratify_tasks', JSON.stringify(nextList));
@@ -89,8 +196,19 @@ export const SchedulerModule: React.FC<SchedulerModuleProps> = ({
     }
   };
 
-  const activeCount = tasks.filter(t => t.status !== 'Done').length;
-  const overdueCount = tasks.filter(t => t.status !== 'Done' && new Date(t.dueDate) < new Date()).length;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const overdueCount = tasks.filter(t => {
+    if (t.status === 'Done') return false;
+    const due = new Date(t.dueDate);
+    due.setHours(0, 0, 0, 0);
+    const diffTime = due.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays < 0;
+  }).length;
+
+  const activeCount = tasks.filter(t => t.status === 'Open' || t.status === 'In Progress').length;
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -101,6 +219,9 @@ export const SchedulerModule: React.FC<SchedulerModuleProps> = ({
     hidden: { opacity: 0, y: 12 },
     show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 100 } }
   };
+
+  const currentCompanyProfile = companyConfig?.registeredVat === false ? TaxpayerType.NON_VAT_REGISTERED : TaxpayerType.VAT_REGISTERED;
+  const visibleForms = getApplicableTaxForms(currentCompanyProfile);
 
   return (
     <motion.div 
@@ -124,6 +245,18 @@ export const SchedulerModule: React.FC<SchedulerModuleProps> = ({
           </button>
         </div>
       </div>
+
+      {overdueCount > 0 && (
+        <motion.div variants={itemVariants} className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900/50 p-4 rounded-2xl flex items-start sm:items-center gap-4">
+          <div className="bg-red-100 dark:bg-red-900/50 p-2 rounded-full text-red-600 dark:text-red-400 shrink-0">
+            <AlertTriangle className="w-5 h-5" />
+          </div>
+          <div className="flex-1">
+            <h3 className="text-sm font-bold text-red-800 dark:text-red-300">Action Required: Overdue Compliance Events</h3>
+            <p className="text-xs text-red-600 dark:text-red-400 mt-0.5">There {overdueCount === 1 ? 'is' : 'are'} {overdueCount} overdue tax or compliance {overdueCount === 1 ? 'event' : 'events'}. Please resolve {overdueCount === 1 ? 'it' : 'them'} immediately to avoid potential penalties and system restrictions.</p>
+          </div>
+        </motion.div>
+      )}
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <motion.div variants={itemVariants} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-5 rounded-2xl flex items-start justify-between shadow-sm">
@@ -168,14 +301,25 @@ export const SchedulerModule: React.FC<SchedulerModuleProps> = ({
           
           <div className="space-y-4 text-left">
             <div className="space-y-1.5">
-              <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 block">Task Title</label>
-              <input 
-                type="text" 
-                placeholder="Filing BIR quarterly income tax"
-                value={taskTitle}
-                onChange={(e) => setTaskTitle(e.target.value)}
-                className="w-full text-xs bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3.5 py-2.5 text-zinc-800 dark:text-zinc-200 focus:outline-none focus:border-blue-400"
-              />
+              <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 block">Task Title (Select Type)</label>
+              <select
+                value={taskTemplate}
+                onChange={(e) => handleTemplateChange(e.target.value)}
+                className="w-full text-xs bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3.5 py-2.5 text-zinc-800 dark:text-zinc-200 focus:outline-none mb-2"
+              >
+                {visibleForms.map(t => (
+                  <option key={t.id} value={t.id}>{t.title}</option>
+                ))}
+              </select>
+              {taskTemplate === 'CUSTOM' && (
+                <input 
+                  type="text" 
+                  placeholder="e.g., Filing BIR Form 1702Q"
+                  value={taskTitle}
+                  onChange={(e) => setTaskTitle(e.target.value)}
+                  className="w-full text-xs bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3.5 py-2.5 text-zinc-800 dark:text-zinc-200 focus:outline-none focus:border-blue-400"
+                />
+              )}
             </div>
 
             <div className="grid grid-cols-2 gap-4">
@@ -261,8 +405,8 @@ export const SchedulerModule: React.FC<SchedulerModuleProps> = ({
                   const isOverdue = t.status !== 'Done' && diffDays < 0;
                   const isNearDue = t.status !== 'Done' && diffDays >= 0 && diffDays <= 5;
                   return (
-                    <tr key={t.id} className="hover:bg-zinc-50/50 dark:hover:bg-zinc-800/10 transition-colors">
-                      <td className="px-5 py-3.5 font-bold text-zinc-800 dark:text-zinc-200">
+                    <tr key={t.id} className={`transition-colors ${isOverdue ? 'bg-red-50/50 dark:bg-red-900/20 hover:bg-red-50 dark:hover:bg-red-900/30' : 'hover:bg-zinc-50/50 dark:hover:bg-zinc-800/10'}`}>
+                      <td className={`px-5 py-3.5 font-bold ${isOverdue ? 'text-red-700 dark:text-red-400' : 'text-zinc-800 dark:text-zinc-200'}`}>
                         <div className="space-y-0.5">
                           <div>{t.title}</div>
                           {isNearDue && (

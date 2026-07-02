@@ -72,7 +72,6 @@ export const COAModule: React.FC<COAModuleProps> = ({
   };
 
   const handleDeleteAccount = (code: string) => {
-    if (!confirm(`Are you sure you want to delete custom account ${code}?`)) return;
     deleteCustomCoaAccount(code);
     const updated = getCompleteChartOfAccounts();
     setCoaCatalog(updated);
@@ -328,7 +327,7 @@ export const COAModule: React.FC<COAModuleProps> = ({
           <div className="h-64 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" className="dark:stroke-zinc-800" />
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                 <XAxis dataKey="name" stroke="#94a3b8" fontSize={11} tickLine={false} />
                 <YAxis stroke="#94a3b8" fontSize={11} tickLine={false} />
                 <Tooltip 

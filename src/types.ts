@@ -89,6 +89,22 @@ export interface FixedAsset {
   cost: number;
   lifeYears: number;
   source: 'Manual' | 'Ledger';
+  assetAccountName?: string;
+  accDepAccountName?: string;
+  depreciationMethod?: 'Straight-Line' | 'Declining Balance' | 'Sum-of-Years-Digits';
+  salvageValue?: number;
+}
+
+export enum TaxpayerType {
+  VAT_REGISTERED = 'VAT_REGISTERED',
+  NON_VAT_REGISTERED = 'NON_VAT_REGISTERED',
+}
+
+export interface TaxFormCard {
+  id: string;
+  formCode: string;
+  title: string;
+  description: string;
 }
 
 export interface SchedulerTask {

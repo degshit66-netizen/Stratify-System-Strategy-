@@ -40,6 +40,7 @@ import {
 
 import { LedgerEntry, CompanyConfig, User, Tenant, SchedulerTask } from './types';
 import { r2, parseNum, cleanDate } from './utils/helpers';
+import { getCompleteChartOfAccounts } from './data/chartOfAccounts';
 
 // Subcomponents
 import { Dashboard } from './components/Dashboard';
@@ -100,6 +101,8 @@ interface Toast {
 }
 
 export default function App() {
+  const coa = Object.entries(getCompleteChartOfAccounts()).map(([code, value]) => ({ ...value, code }));
+  
   // Multi-tenant and Auth State
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [currentTenant, setCurrentTenant] = useState<Tenant | null>(null);
@@ -222,7 +225,7 @@ export default function App() {
         setTasks(JSON.parse(stored));
       } else {
         const defaults: SchedulerTask[] = [
-          { id: 1, title: 'BIR 2550Q VAT Filing Deadline', dueDate: `${new Date().getFullYear()}-07-25`, module: 'Value-Added Tax', status: 'Open' },
+          { id: 1, title: 'BIR 2550M (Monthly Value-Added Tax Declaration)', dueDate: `${new Date().getFullYear()}-07-20`, module: 'Value-Added Tax', status: 'Open' },
           { id: 2, title: 'Annual Income Tax 1702 Return Compilation', dueDate: `${new Date().getFullYear()}-04-15`, module: 'Income Tax', status: 'Done' },
           { id: 3, title: 'Monthly SEC/BIR S.A.S. Submission', dueDate: `${new Date().getFullYear()}-07-10`, module: 'Financial Statements', status: 'In Progress' },
           { id: 4, title: 'Submit Bound Loose-Leaf Books (Affidavit Annex C)', dueDate: `${new Date().getFullYear()}-01-30`, module: 'Loose Leaf Compliance', status: 'Open' }
@@ -409,7 +412,6 @@ export default function App() {
   };
 
   const handleDeleteEntry = (id: number) => {
-    if (!confirm('Are you sure you want to permanently delete this transaction?')) return;
     const updated = ledger.filter(entry => entry.id !== id);
     logAuditTrail('SYSTEM', id, `Deleted transaction ${id}`);
     setLedger(updated);
@@ -920,6 +922,7 @@ export default function App() {
               {activeTab === 'FixedAssets' && (
                 <FixedAssetsModule 
                   ledger={ledger}
+                  coa={coa}
                   showToast={showToast}
                 />
               )}
@@ -944,6 +947,7 @@ export default function App() {
                     setTasks(nextTasks);
                     localStorage.setItem('stratify_tasks', JSON.stringify(nextTasks));
                   }}
+                  companyConfig={companyConfig}
                 />
               )}
               {activeTab === 'Quotation' && (
@@ -957,6 +961,7 @@ export default function App() {
                   yearFilter={yearFilter}
                   monthFilter={monthFilter}
                   quarterFilter={quarterFilter}
+                  companyConfig={companyConfig}
                 />
               )}
               {activeTab === 'Books' && (

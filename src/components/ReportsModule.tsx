@@ -9,13 +9,15 @@ interface ReportsModuleProps {
   yearFilter: string;
   monthFilter: string;
   quarterFilter: string;
+  companyConfig?: { registeredVat: boolean };
 }
 
 export const ReportsModule: React.FC<ReportsModuleProps> = ({
   ledger,
   yearFilter,
   monthFilter,
-  quarterFilter
+  quarterFilter,
+  companyConfig
 }) => {
   const [activeReport, setActiveReport] = useState<'Tax' | 'ARAging' | 'APAging' | 'AnnualSummary'>('Tax');
 
@@ -157,7 +159,7 @@ export const ReportsModule: React.FC<ReportsModuleProps> = ({
               : 'border-transparent text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200'
           }`}
         >
-          BIR Tax Returns (2550Q / 2551Q)
+          {companyConfig?.registeredVat === false ? 'BIR Tax Returns (2551Q)' : 'BIR Tax Returns (2550M)'}
         </button>
         <button
           onClick={() => setActiveReport('ARAging')}
@@ -193,129 +195,136 @@ export const ReportsModule: React.FC<ReportsModuleProps> = ({
 
       {activeReport === 'Tax' && (
         <div className="space-y-6">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <motion.div variants={itemVariants} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-5 rounded-2xl flex items-start justify-between shadow-sm">
-              <div className="space-y-2">
-                <span className="text-xs font-bold uppercase tracking-wider text-zinc-400">Total Output VAT</span>
-                <div className="text-lg font-extrabold text-zinc-800 dark:text-zinc-100">{displayMoney(vatSalesOutput)}</div>
-                <div className="text-xs text-zinc-400 font-medium">12% VAT charged on sales</div>
-              </div>
-              <div className="bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 p-2.5 rounded-xl">
-                <FileText className="w-5 h-5" />
-              </div>
-            </motion.div>
-
-            <motion.div variants={itemVariants} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-5 rounded-2xl flex items-start justify-between shadow-sm">
-              <div className="space-y-2">
-                <span className="text-xs font-bold uppercase tracking-wider text-zinc-400">Total Input VAT Credit</span>
-                <div className="text-lg font-extrabold text-zinc-800 dark:text-zinc-100">{displayMoney(vatPurchasesInput)}</div>
-                <div className="text-xs text-zinc-400 font-medium">12% VAT paid on capital/expenses</div>
-              </div>
-              <div className="bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 p-2.5 rounded-xl">
-                <Scale className="w-5 h-5" />
-              </div>
-            </motion.div>
-
-            <motion.div variants={itemVariants} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-5 rounded-2xl flex items-start justify-between shadow-sm">
-              <div className="space-y-2">
-                <span className="text-xs font-bold uppercase tracking-wider text-zinc-400">Net VAT Payable</span>
-                <div className={`text-lg font-extrabold ${netVatPayable >= 0 ? 'text-red-500' : 'text-emerald-500'}`}>
-                  {displayMoney(netVatPayable)}
+          {companyConfig?.registeredVat !== false && (
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <motion.div variants={itemVariants} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-5 rounded-2xl flex items-start justify-between shadow-sm">
+                <div className="space-y-2">
+                  <span className="text-xs font-bold uppercase tracking-wider text-zinc-400">Total Output VAT</span>
+                  <div className="text-lg font-extrabold text-zinc-800 dark:text-zinc-100">{displayMoney(vatSalesOutput)}</div>
+                  <div className="text-xs text-zinc-400 font-medium">12% VAT charged on sales</div>
                 </div>
-                <div className="text-xs text-zinc-400 font-medium">{netVatPayable >= 0 ? 'Due for payment' : 'Input VAT excess credit'}</div>
-              </div>
-              <div className={`p-2.5 rounded-xl ${netVatPayable >= 0 ? 'bg-red-50 dark:bg-red-950/40 text-red-500' : 'bg-emerald-50 text-emerald-500'}`}>
-                <ShieldCheck className="w-5 h-5" />
-              </div>
-            </motion.div>
-          </div>
+                <div className="bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 p-2.5 rounded-xl">
+                  <FileText className="w-5 h-5" />
+                </div>
+              </motion.div>
+
+              <motion.div variants={itemVariants} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-5 rounded-2xl flex items-start justify-between shadow-sm">
+                <div className="space-y-2">
+                  <span className="text-xs font-bold uppercase tracking-wider text-zinc-400">Total Input VAT Credit</span>
+                  <div className="text-lg font-extrabold text-zinc-800 dark:text-zinc-100">{displayMoney(vatPurchasesInput)}</div>
+                  <div className="text-xs text-zinc-400 font-medium">12% VAT paid on capital/expenses</div>
+                </div>
+                <div className="bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 p-2.5 rounded-xl">
+                  <Scale className="w-5 h-5" />
+                </div>
+              </motion.div>
+
+              <motion.div variants={itemVariants} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-5 rounded-2xl flex items-start justify-between shadow-sm">
+                <div className="space-y-2">
+                  <span className="text-xs font-bold uppercase tracking-wider text-zinc-400">Net VAT Payable</span>
+                  <div className={`text-lg font-extrabold ${netVatPayable >= 0 ? 'text-red-500' : 'text-emerald-500'}`}>
+                    {displayMoney(netVatPayable)}
+                  </div>
+                  <div className="text-xs text-zinc-400 font-medium">{netVatPayable >= 0 ? 'Due for payment' : 'Input VAT excess credit'}</div>
+                </div>
+                <div className={`p-2.5 rounded-xl ${netVatPayable >= 0 ? 'bg-red-50 dark:bg-red-950/40 text-red-500' : 'bg-emerald-50 text-emerald-500'}`}>
+                  <ShieldCheck className="w-5 h-5" />
+                </div>
+              </motion.div>
+            </div>
+          )}
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 text-left">
-            <motion.div variants={itemVariants} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-6 rounded-2xl shadow-sm space-y-4">
-              <div className="flex justify-between items-center border-b border-zinc-100 dark:border-zinc-800 pb-2">
-                <h3 className="text-sm font-bold text-zinc-800 dark:text-zinc-200 uppercase tracking-wider">BIR Form 2550Q VAT Summary</h3>
-                <span className="text-[10px] bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400 font-extrabold px-2 py-0.5 rounded uppercase">Goods & Services Split</span>
-              </div>
-              <div className="space-y-2.5 text-xs text-zinc-500">
-                <div className="flex justify-between">
-                  <span>Vatable Sales - Goods (Net):</span>
-                  <span className="font-mono font-semibold text-zinc-800 dark:text-zinc-300">₱ {formatCurrency(vatableSalesGoods)}</span>
+            {companyConfig?.registeredVat !== false && (
+              <motion.div variants={itemVariants} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-6 rounded-2xl shadow-sm space-y-4">
+                <div className="flex justify-between items-center border-b border-zinc-100 dark:border-zinc-800 pb-2">
+                  <h3 className="text-sm font-bold text-zinc-800 dark:text-zinc-200 uppercase tracking-wider">BIR Form 2550M VAT Summary</h3>
+                  <span className="text-[10px] bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400 font-extrabold px-2 py-0.5 rounded uppercase">Goods & Services Split</span>
                 </div>
-                <div className="flex justify-between border-b border-zinc-100 dark:border-zinc-800/50 pb-1.5 pl-3 text-[11px] italic">
-                  <span>Output VAT - Goods (12%):</span>
-                  <span className="font-mono text-zinc-600 dark:text-zinc-400">₱ {formatCurrency(vatSalesOutputGoods)}</span>
-                </div>
+                <div className="space-y-2.5 text-xs text-zinc-500">
+                  <div className="flex justify-between">
+                    <span>Vatable Sales - Goods (Net):</span>
+                    <span className="font-mono font-semibold text-zinc-800 dark:text-zinc-300">₱ {formatCurrency(vatableSalesGoods)}</span>
+                  </div>
+                  <div className="flex justify-between border-b border-zinc-100 dark:border-zinc-800/50 pb-1.5 pl-3 text-[11px] italic">
+                    <span>Output VAT - Goods (12%):</span>
+                    <span className="font-mono text-zinc-600 dark:text-zinc-400">₱ {formatCurrency(vatSalesOutputGoods)}</span>
+                  </div>
 
-                <div className="flex justify-between">
-                  <span>Vatable Sales - Services (Net):</span>
-                  <span className="font-mono font-semibold text-zinc-800 dark:text-zinc-300">₱ {formatCurrency(vatableSalesServices)}</span>
-                </div>
-                <div className="flex justify-between border-b border-zinc-100 dark:border-zinc-800 pb-1.5 pl-3 text-[11px] italic">
-                  <span>Output VAT - Services (12%):</span>
-                  <span className="font-mono text-zinc-600 dark:text-zinc-400">₱ {formatCurrency(vatSalesOutputServices)}</span>
-                </div>
+                  <div className="flex justify-between">
+                    <span>Vatable Sales - Services (Net):</span>
+                    <span className="font-mono font-semibold text-zinc-800 dark:text-zinc-300">₱ {formatCurrency(vatableSalesServices)}</span>
+                  </div>
+                  <div className="flex justify-between border-b border-zinc-100 dark:border-zinc-800 pb-1.5 pl-3 text-[11px] italic">
+                    <span>Output VAT - Services (12%):</span>
+                    <span className="font-mono text-zinc-600 dark:text-zinc-400">₱ {formatCurrency(vatSalesOutputServices)}</span>
+                  </div>
 
-                <div className="flex justify-between border-b border-zinc-100 dark:border-zinc-800/60 pb-1.5">
-                  <span>Exempt / Zero-Rated Sales:</span>
-                  <span className="font-mono font-semibold text-zinc-800 dark:text-zinc-300">₱ {formatCurrency(exemptSales + zeroRatedSales)}</span>
-                </div>
+                  <div className="flex justify-between border-b border-zinc-100 dark:border-zinc-800/60 pb-1.5">
+                    <span>Exempt / Zero-Rated Sales:</span>
+                    <span className="font-mono font-semibold text-zinc-800 dark:text-zinc-300">₱ {formatCurrency(exemptSales + zeroRatedSales)}</span>
+                  </div>
 
-                <div className="flex justify-between">
-                  <span>Vatable Purchases - Goods (Net):</span>
-                  <span className="font-mono font-semibold text-zinc-800 dark:text-zinc-300">₱ {formatCurrency(vatablePurchasesGoods)}</span>
-                </div>
-                <div className="flex justify-between border-b border-zinc-100 dark:border-zinc-800/50 pb-1.5 pl-3 text-[11px] italic">
-                  <span>Input VAT - Goods (12%):</span>
-                  <span className="font-mono text-zinc-600 dark:text-zinc-400">₱ {formatCurrency(vatPurchasesInputGoods)}</span>
-                </div>
+                  <div className="flex justify-between">
+                    <span>Vatable Purchases - Goods (Net):</span>
+                    <span className="font-mono font-semibold text-zinc-800 dark:text-zinc-300">₱ {formatCurrency(vatablePurchasesGoods)}</span>
+                  </div>
+                  <div className="flex justify-between border-b border-zinc-100 dark:border-zinc-800/50 pb-1.5 pl-3 text-[11px] italic">
+                    <span>Input VAT - Goods (12%):</span>
+                    <span className="font-mono text-zinc-600 dark:text-zinc-400">₱ {formatCurrency(vatPurchasesInputGoods)}</span>
+                  </div>
 
-                <div className="flex justify-between">
-                  <span>Vatable Purchases - Services (Net):</span>
-                  <span className="font-mono font-semibold text-zinc-800 dark:text-zinc-300">₱ {formatCurrency(vatablePurchasesServices)}</span>
-                </div>
-                <div className="flex justify-between border-b border-zinc-100 dark:border-zinc-800 pb-1.5 pl-3 text-[11px] italic">
-                  <span>Input VAT - Services (12%):</span>
-                  <span className="font-mono text-zinc-600 dark:text-zinc-400">₱ {formatCurrency(vatPurchasesInputServices)}</span>
-                </div>
+                  <div className="flex justify-between">
+                    <span>Vatable Purchases - Services (Net):</span>
+                    <span className="font-mono font-semibold text-zinc-800 dark:text-zinc-300">₱ {formatCurrency(vatablePurchasesServices)}</span>
+                  </div>
+                  <div className="flex justify-between border-b border-zinc-100 dark:border-zinc-800 pb-1.5 pl-3 text-[11px] italic">
+                    <span>Input VAT - Services (12%):</span>
+                    <span className="font-mono text-zinc-600 dark:text-zinc-400">₱ {formatCurrency(vatPurchasesInputServices)}</span>
+                  </div>
 
-                <div className="flex justify-between text-sm font-extrabold text-zinc-900 dark:text-white pt-2 border-t border-zinc-200 dark:border-zinc-800">
-                  <span>Net Tax Payable / (Excess Credit):</span>
-                  <span className="font-mono">₱ {formatCurrency(netVatPayable)}</span>
+                  <div className="flex justify-between text-sm font-extrabold text-zinc-900 dark:text-white pt-2 border-t border-zinc-200 dark:border-zinc-800">
+                    <span>Net Tax Payable / (Excess Credit):</span>
+                    <span className="font-mono">₱ {formatCurrency(netVatPayable)}</span>
+                  </div>
                 </div>
-              </div>
-            </motion.div>
+              </motion.div>
+            )}
 
-            <motion.div variants={itemVariants} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-6 rounded-2xl shadow-sm space-y-4">
-              <h3 className="text-sm font-bold text-zinc-800 dark:text-zinc-200 uppercase tracking-wider">BIR Form 2551Q Percentage Tax Summary</h3>
-              <p className="text-xs text-zinc-500">Applicable to small merchants and non-VAT registered taxpayers with gross annual sales below ₱ 3,000,000.</p>
-              <div className="space-y-3 text-xs text-zinc-500 pt-2">
-                <div className="flex justify-between border-b border-zinc-100 dark:border-zinc-800 pb-2.5">
-                  <span>Gross Non-VAT Sales:</span>
-                  <span className="font-mono font-semibold text-zinc-800 dark:text-zinc-300">₱ {formatCurrency(grossNonVatSales)}</span>
+            {companyConfig?.registeredVat === false && (
+              <motion.div variants={itemVariants} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-6 rounded-2xl shadow-sm space-y-4">
+                <h3 className="text-sm font-bold text-zinc-800 dark:text-zinc-200 uppercase tracking-wider">BIR Form 2551Q Percentage Tax Summary</h3>
+                <p className="text-xs text-zinc-500">Applicable to small merchants and non-VAT registered taxpayers with gross annual sales below ₱ 3,000,000.</p>
+                <div className="space-y-3 text-xs text-zinc-500 pt-2">
+                  <div className="flex justify-between border-b border-zinc-100 dark:border-zinc-800 pb-2.5">
+                    <span>Gross Non-VAT Sales:</span>
+                    <span className="font-mono font-semibold text-zinc-800 dark:text-zinc-300">₱ {formatCurrency(grossNonVatSales)}</span>
+                  </div>
+                  <div className="flex justify-between border-b border-zinc-100 dark:border-zinc-800 pb-2.5">
+                    <span>Percentage Tax Rate (PH Legislative rate):</span>
+                    <span className="font-semibold text-zinc-800 dark:text-zinc-300">1.0%</span>
+                  </div>
+                  <div className="flex justify-between text-sm font-extrabold text-zinc-900 dark:text-white pt-2">
+                    <span>Form 2551Q Tax Due:</span>
+                    <span className="font-mono text-red-500">₱ {formatCurrency(percentageTaxDue)}</span>
+                  </div>
                 </div>
-                <div className="flex justify-between border-b border-zinc-100 dark:border-zinc-800 pb-2.5">
-                  <span>Percentage Tax Rate (PH Legislative rate):</span>
-                  <span className="font-semibold text-zinc-800 dark:text-zinc-300">1.0%</span>
-                </div>
-                <div className="flex justify-between text-sm font-extrabold text-zinc-900 dark:text-white pt-2">
-                  <span>Form 2551Q Tax Due:</span>
-                  <span className="font-mono text-red-500">₱ {formatCurrency(percentageTaxDue)}</span>
-                </div>
-              </div>
-            </motion.div>
+              </motion.div>
+            )}
           </div>
 
           {/* SLSP / Summary Lists Section */}
-          <motion.div variants={itemVariants} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-sm overflow-hidden text-left">
-            <div className="border-b border-zinc-100 dark:border-zinc-800 p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-              <div>
-                <h3 className="text-sm font-bold text-zinc-800 dark:text-zinc-200 uppercase tracking-wider">BIR Summary Lists of Sales & Purchases (SLSP) / VAT Relief</h3>
-                <p className="text-xs text-zinc-500 mt-1">Mandatory quarterly electronic submission separating declarations of Gross Sales/Purchases for Goods vs. Services.</p>
+          {companyConfig?.registeredVat !== false && (
+            <motion.div variants={itemVariants} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-sm overflow-hidden text-left">
+              <div className="border-b border-zinc-100 dark:border-zinc-800 p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                <div>
+                  <h3 className="text-sm font-bold text-zinc-800 dark:text-zinc-200 uppercase tracking-wider">BIR Summary Lists of Sales & Purchases (SLSP) / VAT Relief</h3>
+                  <p className="text-xs text-zinc-500 mt-1">Mandatory quarterly electronic submission separating declarations of Gross Sales/Purchases for Goods vs. Services.</p>
+                </div>
+                <span className="text-xs bg-zinc-100 dark:bg-zinc-800 px-3 py-1 rounded-xl text-zinc-600 dark:text-zinc-400 font-mono font-bold">
+                  Relief v1.4 Compliance
+                </span>
               </div>
-              <span className="text-xs bg-zinc-100 dark:bg-zinc-800 px-3 py-1 rounded-xl text-zinc-600 dark:text-zinc-400 font-mono font-bold">
-                Relief v1.4 Compliance
-              </span>
-            </div>
             
             <div className="p-5 grid grid-cols-1 md:grid-cols-2 gap-6 border-b border-zinc-100 dark:border-zinc-800">
               <div className="space-y-3">
@@ -420,6 +429,7 @@ export const ReportsModule: React.FC<ReportsModuleProps> = ({
               </table>
             </div>
           </motion.div>
+          )}
         </div>
       )}
 
