@@ -101,9 +101,8 @@ interface Toast {
 }
 
 export default function App() {
-  const coa = useMemo(() => Object.entries(getCompleteChartOfAccounts()).map(([code, value]) => ({ ...value, code })), []);
-  
-  // Multi-tenant and Auth State
+  // --- States ---
+  const [stratifyTasks, setStratifyTasks] = useState<SchedulerTask[]>([]);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [currentTenant, setCurrentTenant] = useState<Tenant | null>(null);
   const [showOnboarding, setShowOnboarding] = useState(false);
@@ -112,8 +111,145 @@ export default function App() {
   const [logoError, setLogoError] = useState(false);
   const [announcements, setAnnouncements] = useState<SystemAnnouncement[]>([]);
   const [isInitializing, setIsInitializing] = useState(true);
+  const [activeTab, setActiveTab] = useState<ActiveTab>('Dashboard');
+  const [ledger, setLedger] = useState<LedgerEntry[]>([]);
+  const [isEntryOpen, setIsEntryOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [entryModalType, setEntryModalType] = useState<'Sales' | 'Expense'>('Sales');
+  const [activeVoucher, setActiveVoucher] = useState<LedgerEntry | null>(null);
+  const [scanResult, setScanResult] = useState<{ payor: string, particulars: string, gross: string, accountCode: string, tin?: string } | null>(null);
+  const [lockedMonths, setLockedMonths] = useState<Record<string, boolean>>({});
+  const [lockedQuarters, setLockedQuarters] = useState<Record<string, boolean>>({});
+  const [isDarkMode, setIsDarkMode] = useState(() => localStorage.getItem('stratify_theme') !== 'light');
+  const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+  const [companyConfig, setCompanyConfig] = useState<CompanyConfig>({
+    companyName: 'STRATIFY (System+Strategy)',
+    tin: '009-887-112-000',
+    address: 'Ortigas Center, Pasig City, Metro Manila',
+    registeredVat: true,
+    secPermitNo: 'SEC-PH-2026-99120',
+    ptuNo: 'PTU-11223344-STRATIFY',
+    authorizedPIN: '1234',
+    logoUrl: 'https://i.postimg.cc/5yGwSWWR/1782659487700.png'
+  });
+  const [yearFilter, setYearFilter] = useState(() => new Date().getFullYear().toString());
+  const [monthFilter, setMonthFilter] = useState('ALL');
+  const [quarterFilter, setQuarterFilter] = useState('ALL');
+  const [toasts, setToasts] = useState<Toast[]>([]);
+  const [editingEntry, setEditingEntry] = useState<LedgerEntry | undefined>(undefined);
 
+  // --- Custom Hooks ---
   const { isTrialExpired } = useTrialMonitor(currentTenant);
+
+  // --- Memoized Values ---
+  const coa = useMemo(() => Object.entries(getCompleteChartOfAccounts()).map(([code, value]) => ({ ...value, code })), []);
+
+  const dynamicYears = useMemo(() => {
+    const yearsSet = new Set<string>();
+    const currentYearStr = new Date().getFullYear().toString();
+    yearsSet.add(currentYearStr);
+    
+    ledger.forEach(entry => {
+      if (entry.date) {
+        try {
+          const yr = new Date(entry.date).getFullYear().toString();
+          if (!isNaN(Number(yr)) && Number(yr) > 1900) {
+            yearsSet.add(yr);
+          }
+        } catch (e) {}
+      }
+    });
+
+    return Array.from(yearsSet).sort((a, b) => Number(b) - Number(a));
+  }, [ledger]);
+
+  const notifications = useMemo(() => {
+    const notifs: { id: string; type: 'task' | 'subscription' | 'system'; title: string; desc: string; severity: 'high' | 'medium' | 'info' }[] = [];
+
+    stratifyTasks.forEach(t => {
+      if (t.status !== 'Done') {
+        const due = new Date(t.dueDate);
+        due.setHours(0, 0, 0, 0);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const diffTime = due.getTime() - today.getTime();
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        
+        if (diffDays < 0) {
+          notifs.push({
+            id: `task-overdue-${t.id}`,
+            type: 'task',
+            title: `Overdue Event Alert`,
+            desc: `"${t.title}" was due on ${cleanDate(t.dueDate)} (${Math.abs(diffDays)} days overdue).`,
+            severity: 'high'
+          });
+        } else if (diffDays <= 5) {
+          notifs.push({
+            id: `task-soon-${t.id}`,
+            type: 'task',
+            title: `Deadline Approaching`,
+            desc: `"${t.title}" is due in ${diffDays} day${diffDays === 1 ? '' : 's'} (${cleanDate(t.dueDate)}).`,
+            severity: 'medium'
+          });
+        }
+      }
+    });
+
+    if (currentTenant) {
+      const trialEnd = new Date(currentTenant.trialEndsAt);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      trialEnd.setHours(0, 0, 0, 0);
+      const diffTime = trialEnd.getTime() - today.getTime();
+      const daysRemaining = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      
+      if (daysRemaining <= 10 && daysRemaining > 0) {
+        notifs.push({
+          id: `tenant-expire-${currentTenant.id}`,
+          type: 'subscription',
+          title: `Subscription Renewal Warning`,
+          desc: `Your subscription for organization "${currentTenant.name}" expires in ${daysRemaining} days (${cleanDate(currentTenant.trialEndsAt)}).`,
+          severity: 'high'
+        });
+      } else if (daysRemaining <= 0) {
+        notifs.push({
+          id: `tenant-expired-${currentTenant.id}`,
+          type: 'subscription',
+          title: `Subscription Expired`,
+          desc: `Your organization's active subscription period has lapsed. Please renew billing to retain team access.`,
+          severity: 'high'
+        });
+      }
+    }
+
+    // Admin visibility for other expiring tenants
+    if (currentUser?.role === 'superadmin' && tenants.length > 0) {
+      tenants.forEach(tenant => {
+        if (tenant.id !== currentTenant?.id) {
+          const trialEnd = new Date(tenant.trialEndsAt);
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          trialEnd.setHours(0, 0, 0, 0);
+          const diffTime = trialEnd.getTime() - today.getTime();
+          const daysRemaining = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+          
+          if (daysRemaining <= 10 && daysRemaining > 0) {
+            notifs.push({
+              id: `tenant-expire-admin-${tenant.id}`,
+              type: 'subscription',
+              title: `Admin Alert: Tenant Expiring`,
+              desc: `The subscriber group "${tenant.name}" is expiring in ${daysRemaining} days (${cleanDate(tenant.trialEndsAt)}).`,
+              severity: 'medium'
+            });
+          }
+        }
+      });
+    }
+
+    return notifs;
+  }, [stratifyTasks, currentTenant, currentUser, tenants]);
+
+  // --- Effects ---
 
   useEffect(() => {
     const saved = localStorage.getItem('stratify_announcements');
@@ -215,25 +351,14 @@ export default function App() {
     window.location.reload();
   };
 
-  const [activeTab, setActiveTab] = useState<ActiveTab>('Dashboard');
-  const [ledger, setLedger] = useState<LedgerEntry[]>([]);
-  const [isEntryOpen, setIsEntryOpen] = useState(false);
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [entryModalType, setEntryModalType] = useState<'Sales' | 'Expense'>('Sales');
-  const [activeVoucher, setActiveVoucher] = useState<LedgerEntry | null>(null);
-  const [scanResult, setScanResult] = useState<{ payor: string, particulars: string, gross: string, accountCode: string, tin?: string } | null>(null);
-  
-  // Period locks and task schedule states
-  const [lockedMonths, setLockedMonths] = useState<Record<string, boolean>>({});
-  const [lockedQuarters, setLockedQuarters] = useState<Record<string, boolean>>({});
-  const [tasks, setTasks] = useState<SchedulerTask[]>([]);
+
 
   // Hydrate task schedule on mount
   useEffect(() => {
     try {
       const stored = localStorage.getItem('stratify_tasks');
       if (stored) {
-        setTasks(JSON.parse(stored));
+        setStratifyTasks(JSON.parse(stored));
       } else {
         const defaults: SchedulerTask[] = [
           { id: 1, title: 'BIR 2550M (Monthly Value-Added Tax Declaration)', dueDate: `${new Date().getFullYear()}-07-20`, module: 'Value-Added Tax', status: 'Open' },
@@ -241,7 +366,7 @@ export default function App() {
           { id: 3, title: 'Monthly SEC/BIR S.A.S. Submission', dueDate: `${new Date().getFullYear()}-07-10`, module: 'Financial Statements', status: 'In Progress' },
           { id: 4, title: 'Submit Bound Loose-Leaf Books (Affidavit Annex C)', dueDate: `${new Date().getFullYear()}-01-30`, module: 'Loose Leaf Compliance', status: 'Open' }
         ];
-        setTasks(defaults);
+        setStratifyTasks(defaults);
         localStorage.setItem('stratify_tasks', JSON.stringify(defaults));
       }
     } catch (e) {}
@@ -258,10 +383,7 @@ export default function App() {
     }
   };
   
-  const [isDarkMode, setIsDarkMode] = useState(() => {
-    return localStorage.getItem('stratify_theme') !== 'light';
-  });
-  const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+
 
   useEffect(() => {
     if (isDarkMode) {
@@ -278,16 +400,7 @@ export default function App() {
     setScanResult(null);
   };
 
-  const [companyConfig, setCompanyConfig] = useState<CompanyConfig>({
-    companyName: 'STRATIFY (System+Strategy)',
-    tin: '009-887-112-000',
-    address: 'Ortigas Center, Pasig City, Metro Manila',
-    registeredVat: true,
-    secPermitNo: 'SEC-PH-2026-99120',
-    ptuNo: 'PTU-11223344-STRATIFY',
-    authorizedPIN: '1234',
-    logoUrl: 'https://i.postimg.cc/5yGwSWWR/1782659487700.png'
-  });
+
 
   useEffect(() => {
     try {
@@ -302,32 +415,9 @@ export default function App() {
     } catch (e) {}
   }, [isSettingsOpen]);
   
-  // Filtering States
-  const [yearFilter, setYearFilter] = useState(() => new Date().getFullYear().toString());
-  const [monthFilter, setMonthFilter] = useState('ALL');
-  const [quarterFilter, setQuarterFilter] = useState('ALL');
 
-  const dynamicYears = useMemo(() => {
-    const yearsSet = new Set<string>();
-    const currentYearStr = new Date().getFullYear().toString();
-    yearsSet.add(currentYearStr);
-    
-    ledger.forEach(entry => {
-      if (entry.date) {
-        try {
-          const yr = new Date(entry.date).getFullYear().toString();
-          if (!isNaN(Number(yr)) && Number(yr) > 1900) {
-            yearsSet.add(yr);
-          }
-        } catch (e) {}
-      }
-    });
 
-    return Array.from(yearsSet).sort((a, b) => Number(b) - Number(a));
-  }, [ledger]);
 
-  // Toast notifications State
-  const [toasts, setToasts] = useState<Toast[]>([]);
 
   const showToast = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
     const id = Date.now();
@@ -399,7 +489,7 @@ export default function App() {
     }
   };
 
-  const [editingEntry, setEditingEntry] = useState<LedgerEntry | undefined>(undefined);
+
 
   const handleEditEntry = (entry: LedgerEntry) => {
     setEditingEntry(entry);
@@ -578,93 +668,6 @@ export default function App() {
       />
     );
   }
-
-  // Build real-time alerts for Scheduler tasks and expiring subscription/trials
-  const notifications = useMemo(() => {
-    const notifs: { id: string; type: 'task' | 'subscription' | 'system'; title: string; desc: string; severity: 'high' | 'medium' | 'info' }[] = [];
-
-    tasks.forEach(t => {
-      if (t.status !== 'Done') {
-        const due = new Date(t.dueDate);
-        due.setHours(0, 0, 0, 0);
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const diffTime = due.getTime() - today.getTime();
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-        
-        if (diffDays < 0) {
-          notifs.push({
-            id: `task-overdue-${t.id}`,
-            type: 'task',
-            title: `Overdue Event Alert`,
-            desc: `"${t.title}" was due on ${cleanDate(t.dueDate)} (${Math.abs(diffDays)} days overdue).`,
-            severity: 'high'
-          });
-        } else if (diffDays <= 5) {
-          notifs.push({
-            id: `task-soon-${t.id}`,
-            type: 'task',
-            title: `Deadline Approaching`,
-            desc: `"${t.title}" is due in ${diffDays} day${diffDays === 1 ? '' : 's'} (${cleanDate(t.dueDate)}).`,
-            severity: 'medium'
-          });
-        }
-      }
-    });
-
-    if (currentTenant) {
-      const trialEnd = new Date(currentTenant.trialEndsAt);
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      trialEnd.setHours(0, 0, 0, 0);
-      const diffTime = trialEnd.getTime() - today.getTime();
-      const daysRemaining = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-      
-      if (daysRemaining <= 10 && daysRemaining > 0) {
-        notifs.push({
-          id: `tenant-expire-${currentTenant.id}`,
-          type: 'subscription',
-          title: `Subscription Renewal Warning`,
-          desc: `Your subscription for organization "${currentTenant.name}" expires in ${daysRemaining} days (${cleanDate(currentTenant.trialEndsAt)}).`,
-          severity: 'high'
-        });
-      } else if (daysRemaining <= 0) {
-        notifs.push({
-          id: `tenant-expired-${currentTenant.id}`,
-          type: 'subscription',
-          title: `Subscription Expired`,
-          desc: `Your organization's active subscription period has lapsed. Please renew billing to retain team access.`,
-          severity: 'high'
-        });
-      }
-    }
-
-    // Admin visibility for other expiring tenants
-    if (currentUser?.role === 'superadmin' && tenants.length > 0) {
-      tenants.forEach(tenant => {
-        if (tenant.id !== currentTenant?.id) {
-          const trialEnd = new Date(tenant.trialEndsAt);
-          const today = new Date();
-          today.setHours(0, 0, 0, 0);
-          trialEnd.setHours(0, 0, 0, 0);
-          const diffTime = trialEnd.getTime() - today.getTime();
-          const daysRemaining = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-          
-          if (daysRemaining <= 10 && daysRemaining > 0) {
-            notifs.push({
-              id: `tenant-expire-admin-${tenant.id}`,
-              type: 'subscription',
-              title: `Admin Alert: Tenant Expiring`,
-              desc: `The subscriber group "${tenant.name}" is expiring in ${daysRemaining} days (${cleanDate(tenant.trialEndsAt)}).`,
-              severity: 'medium'
-            });
-          }
-        }
-      });
-    }
-
-    return notifs;
-  }, [tasks, currentTenant, currentUser, tenants]);
 
   return (
     <div className="h-screen h-[100dvh] overflow-hidden bg-white dark:bg-zinc-950 flex flex-col font-sans transition-colors duration-300 overscroll-none">
@@ -902,8 +905,6 @@ export default function App() {
                   quarterFilter={quarterFilter}
                   companyName={companyConfig.companyName}
                   companyTin={companyConfig.tin}
-                  tasks={tasks}
-                  currentTenant={currentTenant}
                 />
               )}
               {activeTab === 'Ledger' && (
@@ -983,9 +984,9 @@ export default function App() {
               {activeTab === 'Scheduler' && (
                 <SchedulerModule 
                   showToast={showToast}
-                  tasks={tasks}
+                  tasks={stratifyTasks}
                   setTasks={(nextTasks) => {
-                    setTasks(nextTasks);
+                    setStratifyTasks(nextTasks);
                     localStorage.setItem('stratify_tasks', JSON.stringify(nextTasks));
                   }}
                   companyConfig={companyConfig}
