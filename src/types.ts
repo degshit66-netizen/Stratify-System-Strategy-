@@ -6,6 +6,7 @@ export interface Tenant {
   logo: string | null;
   subscriptionStatus: 'trial' | 'active' | 'paused' | 'terminated' | 'expired';
   trialEndsAt: string;
+  expiresAt?: string;
   createdAt: string;
   isOnline: boolean;
 }
@@ -16,6 +17,7 @@ export interface User {
   role: 'superadmin' | 'tenant_owner' | 'tenant_user';
   tenantId?: string;
   name: string;
+  authProvider?: 'google' | 'email';
 }
 
 export interface LedgerEntry {

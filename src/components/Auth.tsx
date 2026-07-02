@@ -22,6 +22,7 @@ export const Auth: React.FC<AuthProps> = ({ onLogin, tenants, setTenants, users,
   const [address, setAddress] = useState('');
   const [error, setError] = useState('');
   const [imageError, setImageError] = useState(false);
+  const [isGoogleReg, setIsGoogleReg] = useState(false);
 
   const handleGoogleAuth = async () => {
     try {
@@ -83,8 +84,10 @@ export const Auth: React.FC<AuthProps> = ({ onLogin, tenants, setTenants, users,
          
          // Pre-fill email for registration
          setEmail(googleUser.email || '');
+         setIsGoogleReg(true);
+         setPassword('google-oauth-placeholder');
          // Optional: set some dummy password or inform them they still need to complete the form
-         setError('Google account verified. Please complete the company details below and set a password to register.');
+         setError('Google account verified. Please complete the company details below to finish registration.');
       }
     } catch (err: any) {
       setError('Google Sign-In failed. ' + err.message);
@@ -184,7 +187,8 @@ export const Auth: React.FC<AuthProps> = ({ onLogin, tenants, setTenants, users,
         email,
         name: email.split('@')[0],
         role: 'tenant_owner',
-        tenantId
+        tenantId,
+        authProvider: isGoogleReg ? 'google' : 'email'
       };
 
       const newTenants = [...tenants, newTenant];
@@ -311,22 +315,24 @@ export const Auth: React.FC<AuthProps> = ({ onLogin, tenants, setTenants, users,
               </div>
             </div>
             
-            <div>
-              <label className="block text-xs font-bold text-zinc-700 dark:text-zinc-300 mb-1">Password</label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Lock className="h-4 w-4 text-zinc-400" />
+            {!isGoogleReg && (
+              <div>
+                <label className="block text-xs font-bold text-zinc-700 dark:text-zinc-300 mb-1">Password</label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Lock className="h-4 w-4 text-zinc-400" />
+                  </div>
+                  <input 
+                    type="password" 
+                    required
+                    value={password}
+                    onChange={e => setPassword(e.target.value)}
+                    className="w-full pl-10 pr-3 py-2 bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl focus:ring-2 focus:ring-zinc-900 dark:focus:ring-zinc-100 text-sm text-zinc-900 dark:text-zinc-100"
+                    placeholder="••••••••"
+                  />
                 </div>
-                <input 
-                  type="password" 
-                  required
-                  value={password}
-                  onChange={e => setPassword(e.target.value)}
-                  className="w-full pl-10 pr-3 py-2 bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl focus:ring-2 focus:ring-zinc-900 dark:focus:ring-zinc-100 text-sm text-zinc-900 dark:text-zinc-100"
-                  placeholder="••••••••"
-                />
               </div>
-            </div>
+            )}
 
             <button 
               type="submit" 

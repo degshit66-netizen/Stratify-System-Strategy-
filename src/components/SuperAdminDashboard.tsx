@@ -1,8 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Tenant, User } from '../types';
-import { ShieldCheck, Building, Users, Play, Pause, XCircle, LogOut, Search, TrendingUp, DollarSign, Activity, MoreVertical, CreditCard } from 'lucide-react';
-import { format, subDays } from 'date-fns';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { ShieldCheck, Building, Users, Play, Pause, XCircle, LogOut, Search, TrendingUp, DollarSign, Activity, MoreVertical, CreditCard, Calendar, CheckCircle } from 'lucide-react';
+import { format, addMonths } from 'date-fns';
 
 interface SuperAdminDashboardProps {
   tenants: Tenant[];
@@ -11,15 +10,31 @@ interface SuperAdminDashboardProps {
   onLogout: () => void;
 }
 
-const mockChartData = Array.from({ length: 14 }).map((_, i) => ({
-  name: format(subDays(new Date(), 13 - i), 'MMM dd'),
-  revenue: Math.floor(Math.random() * 20000) + 80000,
-  users: Math.floor(Math.random() * 50) + 100,
-}));
-
 export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ tenants, setTenants, users, onLogout }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  
+  // Subscription Update Modal State
+  const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
+  const [selectedTenant, setSelectedTenant] = useState<Tenant | null>(null);
+  const [updateDate, setUpdateDate] = useState<string>('');
+
+  const openUpdateModal = (tenant: Tenant) => {
+    setSelectedTenant(tenant);
+    setUpdateDate(tenant.expiresAt ? new Date(tenant.expiresAt).toISOString().slice(0, 10) : new Date(tenant.trialEndsAt).toISOString().slice(0, 10));
+    setIsUpdateModalOpen(true);
+  };
+
+  const handleSaveUpdate = () => {
+    if (selectedTenant && updateDate) {
+      setTenants(tenants.map(t => t.id === selectedTenant.id ? { 
+        ...t, 
+        subscriptionStatus: 'active',
+        expiresAt: new Date(updateDate).toISOString() 
+      } : t));
+      setIsUpdateModalOpen(false);
+    }
+  };
 
   const handleUpdateStatus = (tenantId: string, status: Tenant['subscriptionStatus']) => {
     setTenants(tenants.map(t => t.id === tenantId ? { ...t, subscriptionStatus: status } : t));
@@ -27,7 +42,7 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ tenant
 
   const activeTenants = tenants.filter(t => t.subscriptionStatus === 'active' || t.subscriptionStatus === 'trial');
   
-  // Calculate mock MRR (assuming average of 2500 per active tenant)
+  // Calculate estimated MRR (assuming average of 2500 per active tenant)
   const mrr = activeTenants.length * 2500;
 
   const filteredTenants = useMemo(() => {
@@ -135,63 +150,42 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ tenant
         </div>
 
         {/* Charts & Analytics */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-sm p-6">
-            <div className="flex justify-between items-center mb-6">
-              <div>
-                <h3 className="font-bold text-zinc-900 dark:text-zinc-100">Revenue Growth</h3>
-                <p className="text-xs text-zinc-500">Trailing 14 days performance</p>
-              </div>
-              <select className="bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 text-sm rounded-lg px-3 py-1.5 font-medium outline-none focus:border-indigo-500">
-                <option>Last 14 Days</option>
-                <option>Last 30 Days</option>
-                <option>This Quarter</option>
-              </select>
-            </div>
-            <div className="h-[250px] w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={mockChartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                  <defs>
-                    <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#4f46e5" stopOpacity={0.3}/>
-                      <stop offset="95%" stopColor="#4f46e5" stopOpacity={0}/>
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e4e4e7" className="dark:stroke-zinc-800" />
-                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#71717a' }} dy={10} />
-                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#71717a' }} tickFormatter={(val) => `₱${val/1000}k`} />
-                  <Tooltip 
-                    contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)' }}
-                    itemStyle={{ color: '#18181b', fontWeight: 'bold' }}
-                    formatter={(value: number) => [`₱${value.toLocaleString()}`, 'Revenue']}
-                  />
-                  <Area type="monotone" dataKey="revenue" stroke="#4f46e5" strokeWidth={3} fillOpacity={1} fill="url(#colorRevenue)" />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-sm p-6 flex flex-col">
-            <h3 className="font-bold text-zinc-900 dark:text-zinc-100 mb-6">Recent Activity</h3>
-            <div className="flex-1 overflow-y-auto pr-2 space-y-4">
-              {/* Mock Activity Log */}
-              {[
-                { type: 'signup', text: 'New tenant registered: Horizon Tech', time: '10 mins ago', icon: Building, color: 'text-blue-500', bg: 'bg-blue-50 dark:bg-blue-900/20' },
-                { type: 'upgrade', text: 'Acme Corp upgraded to Enterprise', time: '1 hour ago', icon: TrendingUp, color: 'text-emerald-500', bg: 'bg-emerald-50 dark:bg-emerald-900/20' },
-                { type: 'payment', text: 'Payment processed: ₱2,500.00', time: '2 hours ago', icon: CreditCard, color: 'text-indigo-500', bg: 'bg-indigo-50 dark:bg-indigo-900/20' },
-                { type: 'alert', text: 'High resource usage: Delta Corp', time: '5 hours ago', icon: Activity, color: 'text-amber-500', bg: 'bg-amber-50 dark:bg-amber-900/20' },
-                { type: 'cancellation', text: 'Subscription paused: Global Inc', time: '1 day ago', icon: Pause, color: 'text-zinc-500', bg: 'bg-zinc-100 dark:bg-zinc-800' },
-              ].map((activity, i) => (
-                <div key={i} className="flex gap-4 items-start">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${activity.bg} ${activity.color}`}>
-                    <activity.icon className="w-4 h-4" />
+            <h3 className="font-bold text-zinc-900 dark:text-zinc-100 mb-6">Recent Tenant Registrations</h3>
+            <div className="flex-1 overflow-y-auto pr-2 space-y-4 max-h-[300px]">
+              {tenants.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).slice(0, 5).map((t) => (
+                <div key={t.id} className="flex gap-4 items-start">
+                  <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 bg-blue-50 text-blue-500 dark:bg-blue-900/20">
+                    <Building className="w-4 h-4" />
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100 leading-snug">{activity.text}</p>
-                    <p className="text-xs text-zinc-500">{activity.time}</p>
+                    <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100 leading-snug">{t.name}</p>
+                    <p className="text-xs text-zinc-500">{format(new Date(t.createdAt), 'MMM dd, yyyy hh:mm a')}</p>
                   </div>
                 </div>
               ))}
+              {tenants.length === 0 && <p className="text-sm text-zinc-500">No tenants yet.</p>}
+            </div>
+          </div>
+          
+          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-sm p-6 flex flex-col">
+            <h3 className="font-bold text-zinc-900 dark:text-zinc-100 mb-6">Recent User Registrations</h3>
+            <div className="flex-1 overflow-y-auto pr-2 space-y-4 max-h-[300px]">
+              {users.slice(0, 5).map((u) => (
+                <div key={u.id} className="flex gap-4 items-start">
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${u.authProvider === 'google' ? 'bg-rose-50 text-rose-500 dark:bg-rose-900/20' : 'bg-emerald-50 text-emerald-500 dark:bg-emerald-900/20'}`}>
+                    <Users className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100 leading-snug">{u.email}</p>
+                    <p className="text-xs text-zinc-500">
+                      {u.authProvider === 'google' ? 'Registered via Google' : 'Registered via Email'} • Role: {u.role}
+                    </p>
+                  </div>
+                </div>
+              ))}
+              {users.length === 0 && <p className="text-sm text-zinc-500">No users yet.</p>}
             </div>
           </div>
         </div>
@@ -235,11 +229,14 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ tenant
                   <th className="p-4 font-semibold">Plan / MRR</th>
                   <th className="p-4 font-semibold">Users</th>
                   <th className="p-4 font-semibold">Registration Date</th>
+                  <th className="p-4 font-semibold">Expiration / Trial End</th>
                   <th className="p-4 font-semibold text-right">Controls</th>
                 </tr>
               </thead>
               <tbody className="text-sm divide-y divide-zinc-100 dark:divide-zinc-800">
-                {filteredTenants.map(tenant => (
+                {filteredTenants.map(tenant => {
+                  const owner = users.find(u => u.tenantId === tenant.id && u.role === 'tenant_owner');
+                  return (
                   <tr key={tenant.id} className="hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors group">
                     <td className="p-4">
                       <div className="flex items-center gap-3">
@@ -254,7 +251,7 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ tenant
                         </div>
                         <div>
                           <span className="font-bold text-zinc-900 dark:text-zinc-100 block">{tenant.name}</span>
-                          <span className="text-xs text-zinc-500 font-medium">ID: {tenant.id.substring(0,8)}</span>
+                          <span className="text-xs text-zinc-500 font-medium">Owner: {owner?.email} {owner?.authProvider === 'google' && '(Google)'}</span>
                         </div>
                       </div>
                     </td>
@@ -286,7 +283,20 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ tenant
                       <div className="text-xs text-zinc-400 dark:text-zinc-500">{format(new Date(tenant.createdAt), 'hh:mm a')}</div>
                     </td>
                     <td className="p-4">
+                      <span className="text-zinc-600 dark:text-zinc-400 font-medium">
+                        {tenant.expiresAt 
+                          ? format(new Date(tenant.expiresAt), 'MMM dd, yyyy') 
+                          : format(new Date(tenant.trialEndsAt), 'MMM dd, yyyy')}
+                      </span>
+                      <div className="text-xs text-zinc-400 dark:text-zinc-500">
+                        {tenant.expiresAt ? 'Subscription Ends' : 'Trial Ends'}
+                      </div>
+                    </td>
+                    <td className="p-4">
                       <div className="flex justify-end gap-1.5 opacity-100 sm:opacity-50 sm:group-hover:opacity-100 transition-opacity">
+                        <button onClick={() => openUpdateModal(tenant)} className="p-2 text-indigo-600 bg-indigo-50 dark:bg-indigo-900/20 hover:bg-indigo-100 dark:hover:bg-indigo-900/40 rounded-lg transition-colors" title="Manage Subscription">
+                          <CheckCircle className="w-4 h-4" />
+                        </button>
                         {tenant.subscriptionStatus !== 'active' && (
                           <button onClick={() => handleUpdateStatus(tenant.id, 'active')} className="p-2 text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 rounded-lg transition-colors" title="Activate / Continue">
                             <Play className="w-4 h-4" />
@@ -308,7 +318,8 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ tenant
                       </div>
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
                 {filteredTenants.length === 0 && (
                   <tr>
                     <td colSpan={6} className="p-12 text-center">
@@ -324,6 +335,57 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ tenant
           </div>
         </div>
       </main>
+
+      {/* Subscription Update Modal */}
+      {isUpdateModalOpen && selectedTenant && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-zinc-900 rounded-2xl w-full max-w-md p-6 border border-zinc-200 dark:border-zinc-800">
+            <h2 className="text-xl font-bold text-zinc-900 dark:text-zinc-100 mb-4">Manage Subscription</h2>
+            <p className="text-sm text-zinc-500 mb-6">Convert {selectedTenant.name}'s trial into an active subscription and set the new expiration date.</p>
+            
+            <div className="space-y-4 mb-6">
+              <div>
+                <label className="block text-xs font-bold text-zinc-700 dark:text-zinc-300 mb-1">New Expiration Date</label>
+                <input 
+                  type="date"
+                  value={updateDate}
+                  onChange={(e) => setUpdateDate(e.target.value)}
+                  className="w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl focus:ring-2 focus:ring-indigo-500 text-sm text-zinc-900 dark:text-zinc-100"
+                />
+              </div>
+              <div className="flex gap-2 text-sm text-zinc-500">
+                <button 
+                  onClick={() => setUpdateDate(new Date(new Date().setMonth(new Date().getMonth() + 1)).toISOString().slice(0, 10))}
+                  className="px-2 py-1 bg-zinc-100 dark:bg-zinc-800 rounded hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors"
+                >
+                  +1 Month
+                </button>
+                <button 
+                  onClick={() => setUpdateDate(new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toISOString().slice(0, 10))}
+                  className="px-2 py-1 bg-zinc-100 dark:bg-zinc-800 rounded hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors"
+                >
+                  +1 Year
+                </button>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3">
+              <button 
+                onClick={() => setIsUpdateModalOpen(false)}
+                className="px-4 py-2 text-sm font-bold text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={handleSaveUpdate}
+                className="px-4 py-2 text-sm font-bold bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-md transition-all"
+              >
+                Activate Subscription
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
