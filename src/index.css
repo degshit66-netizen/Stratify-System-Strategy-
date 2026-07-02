@@ -22,6 +22,51 @@
     display: none !important;
   }
 
+  /* When printing the financial statements, enforce full container focus and absolute visibility overrides */
+  body.is-printing-fs {
+    background-color: white !important;
+    color: black !important;
+    overflow: visible !important;
+    height: auto !important;
+    width: 100% !important;
+    position: static !important;
+  }
+
+  body.is-printing-fs #fsPrintContainer {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+    display: block !important;
+    background: white !important;
+    color: black !important;
+  }
+
+  body.is-printing-fs main {
+    overflow: visible !important;
+    position: static !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    max-width: 100% !important;
+    width: 100% !important;
+    height: auto !important;
+  }
+
+  body.is-printing-fs .no-print,
+  body.is-printing-fs header,
+  body.is-printing-fs aside,
+  body.is-printing-fs button,
+  body.is-printing-fs select,
+  body.is-printing-fs .grid:not(#fsPrintContainer *),
+  body.is-printing-fs div:not(#fsPrintContainer):not(#fsPrintContainer *) {
+    display: none !important;
+  }
+
   /* Make sure background is white and text is readable */
   body, 
   main,
@@ -68,9 +113,17 @@
   }
 
   /* Page break rules for clean reports */
-  .break-before-page {
+  .break-before-page,
+  .fs-sheet-print {
     page-break-before: always !important;
     break-before: page !important;
     margin-top: 2rem !important;
+  }
+
+  /* First sheet doesn't need margin-top break on first page */
+  .fs-sheet-print:first-of-type {
+    page-break-before: avoid !important;
+    break-before: avoid !important;
+    margin-top: 0 !important;
   }
 }

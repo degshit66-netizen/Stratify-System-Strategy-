@@ -248,7 +248,7 @@ export const EntryModal: React.FC<EntryModalProps> = ({
                       className="w-full text-xs bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3.5 py-2.5 text-zinc-800 dark:text-zinc-200 focus:outline-none focus:border-blue-400"
                     >
                       <option value="Sales">Sales (Revenue Inward)</option>
-                      <option value="Expense">Expense (Purchase Outward)</option>
+                      <option value="Expense">Purchase (Outward)</option>
                     </select>
                   </div>
                   <div className="space-y-1.5">
@@ -358,6 +358,7 @@ export const EntryModal: React.FC<EntryModalProps> = ({
                       className="w-full text-xs bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl px-2.5 py-2.5 text-zinc-800 dark:text-zinc-200 focus:outline-none"
                     >
                       <option value="COD">COD (Immediate Cash)</option>
+                      <option value="On Account">On Account (Credit/Terms)</option>
                       <option value="30 Days">30 Days (On Credit)</option>
                       <option value="60 Days">60 Days (On Credit)</option>
                     </select>

@@ -133,12 +133,12 @@ export const LedgerTable: React.FC<LedgerTableProps> = ({
           </div>
         </div>
 
-        <div className="bg-rose-50/50 dark:bg-rose-950/20 border border-rose-100 dark:border-rose-900/30 p-4 rounded-2xl flex items-center justify-between">
+        <div className="bg-zinc-100/50 dark:bg-zinc-800/20 border border-zinc-200 dark:border-zinc-700/50 p-4 rounded-2xl flex items-center justify-between">
           <div className="space-y-1">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-rose-600 dark:text-rose-500">Filtered Purchases Gross</span>
-            <div className="text-base font-extrabold text-red-700 dark:text-red-400">{displayMoney(totalExpenses)}</div>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-600 dark:text-zinc-400">Filtered Purchases Gross</span>
+            <div className="text-base font-extrabold text-zinc-800 dark:text-zinc-200">{displayMoney(totalExpenses)}</div>
           </div>
-          <div className="bg-rose-100 dark:bg-rose-900/40 text-red-700 dark:text-red-400 p-2 rounded-xl">
+          <div className="bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 p-2 rounded-xl">
             <TrendingDown className="w-4 h-4" />
           </div>
         </div>
@@ -267,7 +267,7 @@ export const LedgerTable: React.FC<LedgerTableProps> = ({
                             ? 'bg-zinc-50 border-zinc-200 text-zinc-600 dark:bg-zinc-950 dark:border-zinc-800'
                             : isSetup 
                               ? 'bg-indigo-50 border-indigo-100 text-indigo-700 dark:bg-indigo-950/30 dark:border-indigo-900/30 dark:text-indigo-400'
-                              : 'bg-rose-50 border-rose-100 text-rose-700 dark:bg-rose-950/30 dark:border-rose-900/30 dark:text-rose-400'
+                              : 'bg-zinc-100 border-zinc-200 text-zinc-800 dark:bg-zinc-800 dark:border-zinc-700 dark:text-zinc-200'
                       }`}>
                         {row.type === 'Expense' ? 'Purchase' : row.type}
                         {row.taxType === 'Exempt' && <span className="ml-1 opacity-70 text-[9px] bg-zinc-200 dark:bg-zinc-700 text-zinc-800 dark:text-zinc-200 px-1 rounded font-extrabold">Exempt</span>}

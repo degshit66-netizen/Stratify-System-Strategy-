@@ -293,8 +293,75 @@ export const FSModule: React.FC<FSModuleProps> = ({
         </div>
       </div>
 
-      <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-6 sm:p-8 space-y-10 shadow-sm max-w-4xl mx-auto" id="fsPrintContainer">
+      <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-6 sm:p-8 space-y-10 shadow-sm max-w-4xl mx-auto font-sans" id="fsPrintContainer">
         
+        {/* INDEPENDENT AUDITOR'S REPORT (PAGE 1) */}
+        <div className="space-y-6 fs-sheet-print pb-10 border-b-2 border-zinc-900 text-left">
+          <div className="text-center pb-6 border-b border-zinc-200 dark:border-zinc-800">
+            <h1 className="text-xl font-bold uppercase tracking-widest text-zinc-900 dark:text-white">INDEPENDENT AUDITOR'S REPORT</h1>
+            <p className="text-xs text-zinc-500 font-medium mt-1">To the Owner and Board of Directors of {companyName}</p>
+          </div>
+          
+          <div className="space-y-4 text-xs text-zinc-700 dark:text-zinc-300 text-justify leading-relaxed font-serif">
+            <div>
+              <span className="font-bold uppercase tracking-wider block text-zinc-900 dark:text-white mb-1">Opinion</span>
+              <p>
+                We have audited the accompanying financial statements of <strong className="text-zinc-900 dark:text-white">{companyName}</strong>, which comprise the Statement of Financial Position as of December 31, {yearFilter}, and the Statement of Comprehensive Income, Statement of Changes in Equity, and Statement of Cash Flows for the period then ended, and notes to the financial statements, including a summary of significant accounting policies.
+              </p>
+              <p className="mt-2">
+                In our opinion, the accompanying financial statements present fairly, in all material respects, the financial position of <strong>{companyName}</strong> as of December 31, {yearFilter}, and its financial performance and its cash flows for the period then ended in accordance with Philippine Financial Reporting Standards (PFRS) for Small Entities.
+              </p>
+            </div>
+
+            <div>
+              <span className="font-bold uppercase tracking-wider block text-zinc-900 dark:text-white mb-1">Basis for Opinion</span>
+              <p>
+                We conducted our audit in accordance with Philippine Standards on Auditing (PSAs). Our responsibilities under those standards are further described in the <em>Auditor’s Responsibilities for the Audit of the Financial Statements</em> section of our report. We are independent of the Company in accordance with the Code of Ethics for Professional Accountants in the Philippines (Code of Ethics) together with the ethical requirements that are relevant to our audit of the financial statements in the Philippines, and we have fulfilled our other ethical responsibilities in accordance with these requirements. We believe that the audit evidence we have obtained is sufficient and appropriate to provide a basis for our opinion.
+              </p>
+            </div>
+
+            <div>
+              <span className="font-bold uppercase tracking-wider block text-zinc-900 dark:text-white mb-1">Responsibilities of Management for the Financial Statements</span>
+              <p>
+                Management is responsible for the preparation and fair presentation of the financial statements in accordance with PFRS for Small Entities, and for such internal control as management determines is necessary to enable the preparation of financial statements that are free from material misstatement, whether due to fraud or error.
+              </p>
+              <p className="mt-2">
+                In preparing the financial statements, management is responsible for assessing the Company’s ability to continue as a going concern, disclosing, as applicable, matters related to going concern and using the going concern basis of accounting unless management either intends to liquidate the Company or to cease operations, or has no realistic alternative but to do so.
+              </p>
+            </div>
+
+            <div>
+              <span className="font-bold uppercase tracking-wider block text-zinc-900 dark:text-white mb-1">Auditor’s Responsibilities for the Audit of the Financial Statements</span>
+              <p>
+                Our objectives are to obtain reasonable assurance about whether the financial statements as a whole are free from material misstatement, whether due to fraud or error, and to issue an auditor’s report that includes our opinion. Reasonable assurance is a high level of assurance, but is not a guarantee that an audit conducted in accordance with PSAs will always detect a material misstatement when it exists. Misstatements can arise from fraud or error and are considered material if, individually or in the aggregate, they could reasonably be expected to influence the economic decisions of users taken on the basis of these financial statements.
+              </p>
+            </div>
+          </div>
+
+          {/* AUDITOR ACCREDITATION SIGNATURE BLOCKS */}
+          <div className="grid grid-cols-2 gap-8 pt-8 text-xs font-sans border-t border-zinc-100 dark:border-zinc-800">
+            <div className="space-y-4">
+              <p className="text-zinc-500 font-bold uppercase tracking-wider text-[10px]">Certified Correct By:</p>
+              <div className="pt-10 border-b border-zinc-400 dark:border-zinc-600 w-48"></div>
+              <div>
+                <p className="font-bold text-zinc-900 dark:text-white">Chief Executive Officer / Owner</p>
+                <p className="text-[10px] text-zinc-500">{companyName}</p>
+                <p className="text-[10px] text-zinc-500">Date Signed: {new Date().toLocaleDateString('en-PH', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
+              </div>
+            </div>
+            <div className="space-y-4">
+              <p className="text-zinc-500 font-bold uppercase tracking-wider text-[10px]">Audited & Certified By:</p>
+              <div className="pt-10 border-b border-zinc-400 dark:border-zinc-600 w-48"></div>
+              <div>
+                <p className="font-bold text-zinc-900 dark:text-white">SGV & CO. / INDEPENDENT AUDITOR</p>
+                <p className="text-[10px] text-zinc-500">PRC License No. 0088192 (Valid until Oct 2028)</p>
+                <p className="text-[10px] text-zinc-500">PTR No. 9118231 | BIR Accreditation No. 08-002341-002-2026</p>
+                <p className="text-[10px] text-zinc-500">BOA/PRC Reg. No. 0001 (Valid until Dec 31, 2026)</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* STATEMENT OF INCOMES */}
         <div className="space-y-6 fs-sheet-print">
           <div className="text-center border-b-2 border-zinc-800 dark:border-zinc-200 pb-4">

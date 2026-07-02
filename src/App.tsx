@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   BarChart3, 
@@ -251,9 +251,28 @@ export default function App() {
   }, [isSettingsOpen]);
   
   // Filtering States
-  const [yearFilter, setYearFilter] = useState('2026');
+  const [yearFilter, setYearFilter] = useState(() => new Date().getFullYear().toString());
   const [monthFilter, setMonthFilter] = useState('ALL');
   const [quarterFilter, setQuarterFilter] = useState('ALL');
+
+  const dynamicYears = useMemo(() => {
+    const yearsSet = new Set<string>();
+    const currentYearStr = new Date().getFullYear().toString();
+    yearsSet.add(currentYearStr);
+    
+    ledger.forEach(entry => {
+      if (entry.date) {
+        try {
+          const yr = new Date(entry.date).getFullYear().toString();
+          if (!isNaN(Number(yr)) && Number(yr) > 1900) {
+            yearsSet.add(yr);
+          }
+        } catch (e) {}
+      }
+    });
+
+    return Array.from(yearsSet).sort((a, b) => Number(b) - Number(a));
+  }, [ledger]);
 
   // Toast notifications State
   const [toasts, setToasts] = useState<Toast[]>([]);
@@ -269,16 +288,21 @@ export default function App() {
   // Hydrate initial ledger on mount
   useEffect(() => {
     try {
-      const stored = localStorage.getItem('stratify_general_ledger');
-      if (stored) {
-        setLedger(JSON.parse(stored));
+      if (currentTenant) {
+        const key = `stratify_general_ledger_${currentTenant.id}`;
+        const stored = localStorage.getItem(key);
+        if (stored) {
+          setLedger(JSON.parse(stored));
+        } else {
+          const defaultTx: LedgerEntry[] = [];
+          setLedger(defaultTx);
+          localStorage.setItem(key, JSON.stringify(defaultTx));
+        }
       } else {
-        const defaultTx: LedgerEntry[] = [];
-        setLedger(defaultTx);
-        localStorage.setItem('stratify_general_ledger', JSON.stringify(defaultTx));
+        setLedger([]);
       }
     } catch (e) {}
-  }, []);
+  }, [currentTenant]);
 
   const logAuditTrail = (action: 'CREATE' | 'UPDATE' | 'VOID' | 'SYSTEM' | 'IMPORT', recordId: string | number, details: string, changes?: string) => {
     try {
@@ -308,7 +332,9 @@ export default function App() {
       logAuditTrail('CREATE', newEntry.id, `Created ${newEntry.type} transaction for ${newEntry.payor}`);
     }
     setLedger(updated);
-    localStorage.setItem('stratify_general_ledger', JSON.stringify(updated));
+    if (currentTenant) {
+      localStorage.setItem(`stratify_general_ledger_${currentTenant.id}`, JSON.stringify(updated));
+    }
   };
 
   const [editingEntry, setEditingEntry] = useState<LedgerEntry | undefined>(undefined);
@@ -328,7 +354,9 @@ export default function App() {
       return entry;
     });
     setLedger(updated);
-    localStorage.setItem('stratify_general_ledger', JSON.stringify(updated));
+    if (currentTenant) {
+      localStorage.setItem(`stratify_general_ledger_${currentTenant.id}`, JSON.stringify(updated));
+    }
     showToast('Transaction Voided successfully.', 'info');
   };
 
@@ -337,7 +365,9 @@ export default function App() {
     const updated = ledger.filter(entry => entry.id !== id);
     logAuditTrail('SYSTEM', id, `Deleted transaction ${id}`);
     setLedger(updated);
-    localStorage.setItem('stratify_general_ledger', JSON.stringify(updated));
+    if (currentTenant) {
+      localStorage.setItem(`stratify_general_ledger_${currentTenant.id}`, JSON.stringify(updated));
+    }
     showToast('Transaction removed permanently.', 'success');
   };
 
@@ -401,7 +431,7 @@ export default function App() {
         { id: 'Dashboard', label: 'Dashboard', icon: <BarChart3 className="w-4 h-4 mr-3" /> },
         { id: 'Ledger', label: 'Journal Ledger', icon: <BookOpen className="w-4 h-4 mr-3" /> },
         { id: 'Sales', label: 'Sales', icon: <Banknote className="w-4 h-4 mr-3" /> },
-        { id: 'Purchases', label: 'Purchases / Expenses', icon: <Receipt className="w-4 h-4 mr-3" /> },
+        { id: 'Purchases', label: 'Purchases', icon: <Receipt className="w-4 h-4 mr-3" /> },
         { id: 'Reconciliation', label: 'Reconciliation', icon: <Scale className="w-4 h-4 mr-3" /> },
         { id: 'COA', label: 'Chart of Accounts', icon: <Layers className="w-4 h-4 mr-3" /> }
       ]
@@ -517,8 +547,9 @@ export default function App() {
               onChange={(e) => setYearFilter(e.target.value)}
               className="text-xs bg-transparent text-white font-bold focus:outline-none pr-1 [&>option]:text-zinc-900"
             >
-              <option value="2026">2026</option>
-              <option value="2025">2025</option>
+              {dynamicYears.map(yr => (
+                <option key={yr} value={yr}>{yr}</option>
+              ))}
             </select>
           </div>
 
@@ -771,6 +802,8 @@ export default function App() {
         onClose={() => setIsSettingsOpen(false)} 
         showToast={showToast}
         currentTenant={currentTenant}
+        users={users}
+        setUsers={setUsers}
         updateTenantLogo={(url) => {
           if (currentTenant) {
             const updated = { ...currentTenant, logo: url };

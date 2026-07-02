@@ -167,9 +167,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
         <motion.div variants={itemVariants} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-5 rounded-2xl flex items-start justify-between shadow-sm">
           <div className="space-y-2">
-            <span className="text-xs font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Purchases & Expenses</span>
+            <span className="text-xs font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Total Purchases</span>
             <div className="text-lg font-extrabold text-zinc-900 dark:text-zinc-100">{displayMoney(totalPurchGross)}</div>
-            <div className="text-xs font-medium text-zinc-400">{purchases.length} expenses posted</div>
+            <div className="text-xs font-medium text-zinc-400">{purchases.length} purchases posted</div>
           </div>
           <div className="bg-zinc-50 dark:bg-zinc-950/40 text-zinc-900 dark:text-zinc-100 p-2.5 rounded-xl">
             <TrendingDown className="w-5 h-5" />
@@ -198,7 +198,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
         </motion.div>
 
         <motion.div variants={itemVariants} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-5 rounded-2xl shadow-sm">
-          <span className="text-xs font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Total Operating Expenses</span>
+          <span className="text-xs font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Total Operating Purchases</span>
           <div className="text-base font-extrabold text-zinc-800 dark:text-zinc-100 mt-1">{displayMoney(operatingExpenses)}</div>
           <p className="text-xs text-zinc-400 dark:text-zinc-500 mt-2 font-medium">Fixed and administrative costs</p>
         </motion.div>
@@ -211,12 +211,12 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
         <motion.div variants={itemVariants} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-5 rounded-2xl shadow-sm">
           <span className="text-xs font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Value-Added Tax (VAT)</span>
-          <div className={`text-base font-extrabold mt-1 ${netVat >= 0 ? 'text-red-500' : 'text-emerald-500'}`}>
+          <div className={`text-base font-extrabold mt-1 ${netVat >= 0 ? 'text-zinc-800 dark:text-zinc-100' : 'text-emerald-500'}`}>
             {displayMoney(netVat)}
           </div>
           <p className="text-xs mt-2 font-semibold">
             {netVat >= 0 ? (
-              <span className="text-rose-500 flex items-center gap-1"><ArrowUpRight className="w-3.5 h-3.5" /> VAT Payable</span>
+              <span className="text-zinc-500 dark:text-zinc-400 flex items-center gap-1"><ArrowUpRight className="w-3.5 h-3.5" /> VAT Payable</span>
             ) : (
               <span className="text-emerald-500 flex items-center gap-1"><ArrowDownRight className="w-3.5 h-3.5" /> Excess Input Tax</span>
             )}
@@ -320,7 +320,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                     <span className={`inline-flex px-2 py-0.5 rounded text-[10px] font-bold uppercase border ${
                       r.type === 'Sales' 
                         ? 'bg-emerald-50 border-emerald-100 text-emerald-700 dark:bg-emerald-950/30 dark:border-emerald-900/30 dark:text-emerald-400' 
-                        : 'bg-rose-50 border-rose-100 text-rose-700 dark:bg-rose-950/30 dark:border-rose-900/30 dark:text-rose-400'
+                        : 'bg-zinc-100 border-zinc-200 text-zinc-800 dark:bg-zinc-800 dark:border-zinc-700 dark:text-zinc-200'
                     }`}>
                       {r.type === 'Sales' ? 'Sales' : 'Purchase'}
                     </span>

@@ -64,7 +64,7 @@ export const PurchaseModule: React.FC<PurchaseModuleProps> = ({
     .map(([name, value]) => ({ name, value }))
     .sort((a, b) => b.value - a.value);
 
-  const COLORS = ['#ef4444', '#f59e0b', '#3b82f6', '#8b5cf6', '#ec4899', '#10b981', '#6366f1', '#14b8a6'];
+  const COLORS = ['#3f3f46', '#f59e0b', '#3b82f6', '#8b5cf6', '#ec4899', '#10b981', '#6366f1', '#14b8a6'];
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -89,7 +89,7 @@ export const PurchaseModule: React.FC<PurchaseModuleProps> = ({
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-zinc-200 dark:border-zinc-800 pb-5">
         <div>
           <h2 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-white font-sans">🛒 Purchases</h2>
-          <p className="text-sm text-zinc-500 dark:text-zinc-400">Track company disbursements, operating expenses, input taxes, and print disbursement vouchers.</p>
+          <p className="text-sm text-zinc-500 dark:text-zinc-400">Track company disbursements, operating purchases, input taxes, and print disbursement vouchers.</p>
         </div>
         <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
           <button 
@@ -104,7 +104,7 @@ export const PurchaseModule: React.FC<PurchaseModuleProps> = ({
             className="flex items-center gap-2 text-xs bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-4 py-2.5 rounded-xl transition-colors shadow-sm focus:outline-none"
           >
             <PlusCircle className="w-4 h-4" />
-            <span>New Expense</span>
+            <span>New Purchase</span>
           </button>
         </div>
       </div>
@@ -116,7 +116,7 @@ export const PurchaseModule: React.FC<PurchaseModuleProps> = ({
             <div className="text-lg font-extrabold text-zinc-900 dark:text-zinc-100">{displayMoney(totalGross)}</div>
             <div className="text-xs text-zinc-400 font-medium">Operating outflow sum</div>
           </div>
-          <div className="bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 p-2.5 rounded-xl">
+          <div className="bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 p-2.5 rounded-xl">
             <TrendingDown className="w-5 h-5" />
           </div>
         </motion.div>
@@ -145,11 +145,11 @@ export const PurchaseModule: React.FC<PurchaseModuleProps> = ({
 
         <motion.div variants={itemVariants} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-5 rounded-2xl flex items-start justify-between shadow-sm">
           <div className="space-y-2">
-            <span className="text-xs font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Average Expense</span>
+            <span className="text-xs font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Average Purchase</span>
             <div className="text-lg font-extrabold text-zinc-800 dark:text-zinc-100">{displayMoney(avgExpense)}</div>
-            <div className="text-xs text-zinc-400 font-medium">Expenses divided by transactions</div>
+            <div className="text-xs text-zinc-400 font-medium">Purchases divided by transactions</div>
           </div>
-          <div className="bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 p-2.5 rounded-xl">
+          <div className="bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 p-2.5 rounded-xl">
             <TrendingDown className="w-5 h-5" />
           </div>
         </motion.div>
@@ -223,8 +223,8 @@ export const PurchaseModule: React.FC<PurchaseModuleProps> = ({
 
       <motion.div variants={itemVariants} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-sm overflow-hidden">
         <div className="border-b border-zinc-100 dark:border-zinc-800 p-5">
-          <h3 className="text-sm font-bold text-zinc-800 dark:text-zinc-200 uppercase tracking-wider">Disbursement & Purchase Ledger</h3>
-          <p className="text-xs text-zinc-500 mt-1">Showing all purchase and expense transactions matching current filters.</p>
+          <h3 className="text-sm font-bold text-zinc-800 dark:text-zinc-200 uppercase tracking-wider">Purchase Ledger</h3>
+          <p className="text-xs text-zinc-500 mt-1">Showing all purchase transactions matching current filters.</p>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse min-w-[1100px]">
