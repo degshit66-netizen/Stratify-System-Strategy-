@@ -38,7 +38,7 @@ import {
   HardHat
 } from 'lucide-react';
 
-import { LedgerEntry, CompanyConfig, User, Tenant, SchedulerTask } from './types';
+import { LedgerEntry, CompanyConfig, User, Tenant, SchedulerTask, SystemAnnouncement } from './types';
 import { r2, parseNum, cleanDate } from './utils/helpers';
 import { getCompleteChartOfAccounts } from './data/chartOfAccounts';
 
@@ -101,7 +101,7 @@ interface Toast {
 }
 
 export default function App() {
-  const coa = Object.entries(getCompleteChartOfAccounts()).map(([code, value]) => ({ ...value, code }));
+  const coa = useMemo(() => Object.entries(getCompleteChartOfAccounts()).map(([code, value]) => ({ ...value, code })), []);
   
   // Multi-tenant and Auth State
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -110,8 +110,17 @@ export default function App() {
   const [tenants, setTenants] = useState<Tenant[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [logoError, setLogoError] = useState(false);
+  const [announcements, setAnnouncements] = useState<SystemAnnouncement[]>([]);
+  const [isInitializing, setIsInitializing] = useState(true);
 
   const { isTrialExpired } = useTrialMonitor(currentTenant);
+
+  useEffect(() => {
+    const saved = localStorage.getItem('stratify_announcements');
+    if (saved) {
+      setAnnouncements(JSON.parse(saved));
+    }
+  }, [currentUser]);
 
   useEffect(() => {
     const initializeData = async () => {
@@ -160,6 +169,8 @@ export default function App() {
          setShowOnboarding(true);
          localStorage.removeItem('show_onboarding_pending');
       }
+
+      setIsInitializing(false);
     };
     
     initializeData();
@@ -179,18 +190,23 @@ export default function App() {
     }
   }, [users]);
 
-  const handleLogin = (user: User, tenant?: Tenant) => {
+  const handleLogin = async (user: User, tenant?: Tenant) => {
     localStorage.setItem('current_user_id', user.id);
+    setCurrentUser(user);
     if (tenant) {
       localStorage.setItem('current_tenant_id', tenant.id);
       
       const isFirstLogin = !localStorage.getItem(`onboarded_${user.id}_${tenant.id}`);
       if (isFirstLogin) {
         localStorage.setItem(`onboarded_${user.id}_${tenant.id}`, 'true');
-        localStorage.setItem('show_onboarding_pending', 'true');
+        setShowOnboarding(true);
       }
+      
+      setIsInitializing(true);
+      await loadStorageFromFirebase(tenant.id);
+      setCurrentTenant(tenant);
+      setIsInitializing(false);
     }
-    window.location.reload();
   };
 
   const handleLogout = () => {
@@ -486,26 +502,26 @@ export default function App() {
         { id: 'COA', label: 'Chart of Accounts', icon: <Layers className="w-4 h-4 mr-3" /> }
       ]
     },
-    {
+    (currentTenant?.modules?.fixedAssets !== false || currentTenant?.modules?.inventory !== false) ? {
       title: 'Assets & Inventory',
       items: [
-        { id: 'FixedAssets', label: 'Fixed Assets', icon: <Building className="w-4 h-4 mr-3" /> },
-        { id: 'Inventory', label: 'Inventory Stock', icon: <Package className="w-4 h-4 mr-3" /> }
+        ...(currentTenant?.modules?.fixedAssets !== false ? [{ id: 'FixedAssets', label: 'Fixed Assets', icon: <Building className="w-4 h-4 mr-3" /> }] : []),
+        ...(currentTenant?.modules?.inventory !== false ? [{ id: 'Inventory', label: 'Inventory Stock', icon: <Package className="w-4 h-4 mr-3" /> }] : [])
       ]
-    },
-    {
+    } : null,
+    currentTenant?.modules?.ecommerce !== false ? {
       title: 'E-Commerce (Auto-Sync)',
       items: [
         { id: 'Ecommerce', label: 'Storefront & Orders', icon: <ShoppingCart className="w-4 h-4 mr-3" /> }
       ]
-    },
-    {
+    } : null,
+    currentTenant?.modules?.payroll !== false ? {
       title: 'HR & Payroll',
       items: [
         { id: 'Payroll', label: 'Payroll System', icon: <CreditCard className="w-4 h-4 mr-3" /> },
         { id: 'HR', label: 'HR Management', icon: <UsersRound className="w-4 h-4 mr-3" /> }
       ]
-    },
+    } : null,
     {
       title: 'Business Ops',
       items: [
@@ -524,7 +540,103 @@ export default function App() {
         { id: 'AuditTrail', label: 'System Audit Trail', icon: <ShieldCheck className="w-4 h-4 mr-3" /> }
       ]
     }
-  ];
+  ].filter(Boolean) as { title: string, items: { id: string, label: string, icon: any }[] }[];
+
+  // Build real-time alerts for Scheduler tasks and expiring subscription/trials
+  const notifications = useMemo(() => {
+    const notifs: { id: string; type: 'task' | 'subscription' | 'system'; title: string; desc: string; severity: 'high' | 'medium' | 'info' }[] = [];
+
+    tasks.forEach(t => {
+      if (t.status !== 'Done') {
+        const due = new Date(t.dueDate);
+        due.setHours(0, 0, 0, 0);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const diffTime = due.getTime() - today.getTime();
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        
+        if (diffDays < 0) {
+          notifs.push({
+            id: `task-overdue-${t.id}`,
+            type: 'task',
+            title: `Overdue Event Alert`,
+            desc: `"${t.title}" was due on ${cleanDate(t.dueDate)} (${Math.abs(diffDays)} days overdue).`,
+            severity: 'high'
+          });
+        } else if (diffDays <= 5) {
+          notifs.push({
+            id: `task-soon-${t.id}`,
+            type: 'task',
+            title: `Deadline Approaching`,
+            desc: `"${t.title}" is due in ${diffDays} day${diffDays === 1 ? '' : 's'} (${cleanDate(t.dueDate)}).`,
+            severity: 'medium'
+          });
+        }
+      }
+    });
+
+    if (currentTenant) {
+      const trialEnd = new Date(currentTenant.trialEndsAt);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      trialEnd.setHours(0, 0, 0, 0);
+      const diffTime = trialEnd.getTime() - today.getTime();
+      const daysRemaining = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      
+      if (daysRemaining <= 10 && daysRemaining > 0) {
+        notifs.push({
+          id: `tenant-expire-${currentTenant.id}`,
+          type: 'subscription',
+          title: `Subscription Renewal Warning`,
+          desc: `Your subscription for organization "${currentTenant.name}" expires in ${daysRemaining} days (${cleanDate(currentTenant.trialEndsAt)}).`,
+          severity: 'high'
+        });
+      } else if (daysRemaining <= 0) {
+        notifs.push({
+          id: `tenant-expired-${currentTenant.id}`,
+          type: 'subscription',
+          title: `Subscription Expired`,
+          desc: `Your organization's active subscription period has lapsed. Please renew billing to retain team access.`,
+          severity: 'high'
+        });
+      }
+    }
+
+    // Admin visibility for other expiring tenants
+    if (currentUser?.role === 'superadmin' && tenants.length > 0) {
+      tenants.forEach(tenant => {
+        if (tenant.id !== currentTenant?.id) {
+          const trialEnd = new Date(tenant.trialEndsAt);
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          trialEnd.setHours(0, 0, 0, 0);
+          const diffTime = trialEnd.getTime() - today.getTime();
+          const daysRemaining = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+          
+          if (daysRemaining <= 10 && daysRemaining > 0) {
+            notifs.push({
+              id: `tenant-expire-admin-${tenant.id}`,
+              type: 'subscription',
+              title: `Admin Alert: Tenant Expiring`,
+              desc: `The subscriber group "${tenant.name}" is expiring in ${daysRemaining} days (${cleanDate(tenant.trialEndsAt)}).`,
+              severity: 'medium'
+            });
+          }
+        }
+      });
+    }
+
+    return notifs;
+  }, [tasks, currentTenant, currentUser, tenants]);
+
+  if (isInitializing) {
+    return (
+      <div className="h-screen w-screen flex flex-col items-center justify-center bg-zinc-950 text-white">
+        <div className="w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+        <p className="text-zinc-400 font-medium animate-pulse tracking-wide uppercase text-sm">Loading STRATIFY Workspace...</p>
+      </div>
+    );
+  }
 
   if (!currentUser) {
     return (
@@ -557,89 +669,6 @@ export default function App() {
         onLogout={handleLogout}
       />
     );
-  }
-
-  // Build real-time alerts for Scheduler tasks and expiring subscription/trials
-  const notifications: { id: string; type: 'task' | 'subscription' | 'system'; title: string; desc: string; severity: 'high' | 'medium' | 'info' }[] = [];
-
-  tasks.forEach(t => {
-    if (t.status !== 'Done') {
-      const due = new Date(t.dueDate);
-      due.setHours(0, 0, 0, 0);
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const diffTime = due.getTime() - today.getTime();
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-      
-      if (diffDays < 0) {
-        notifications.push({
-          id: `task-overdue-${t.id}`,
-          type: 'task',
-          title: `Overdue Event Alert`,
-          desc: `"${t.title}" was due on ${cleanDate(t.dueDate)} (${Math.abs(diffDays)} days overdue).`,
-          severity: 'high'
-        });
-      } else if (diffDays <= 5) {
-        notifications.push({
-          id: `task-soon-${t.id}`,
-          type: 'task',
-          title: `Deadline Approaching`,
-          desc: `"${t.title}" is due in ${diffDays} day${diffDays === 1 ? '' : 's'} (${cleanDate(t.dueDate)}).`,
-          severity: 'medium'
-        });
-      }
-    }
-  });
-
-  if (currentTenant) {
-    const trialEnd = new Date(currentTenant.trialEndDate);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    trialEnd.setHours(0, 0, 0, 0);
-    const diffTime = trialEnd.getTime() - today.getTime();
-    const daysRemaining = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    
-    if (daysRemaining <= 10 && daysRemaining > 0) {
-      notifications.push({
-        id: `tenant-expire-${currentTenant.id}`,
-        type: 'subscription',
-        title: `Subscription Renewal Warning`,
-        desc: `Your subscription for organization "${currentTenant.name}" expires in ${daysRemaining} days (${cleanDate(currentTenant.trialEndDate)}).`,
-        severity: 'high'
-      });
-    } else if (daysRemaining <= 0) {
-      notifications.push({
-        id: `tenant-expired-${currentTenant.id}`,
-        type: 'subscription',
-        title: `Subscription Expired`,
-        desc: `Your organization's active subscription period has lapsed. Please renew billing to retain team access.`,
-        severity: 'high'
-      });
-    }
-  }
-
-  // Admin visibility for other expiring tenants
-  if (currentUser?.role === 'admin' && tenants.length > 0) {
-    tenants.forEach(tenant => {
-      if (tenant.id !== currentTenant?.id) {
-        const trialEnd = new Date(tenant.trialEndDate);
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        trialEnd.setHours(0, 0, 0, 0);
-        const diffTime = trialEnd.getTime() - today.getTime();
-        const daysRemaining = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-        
-        if (daysRemaining <= 10 && daysRemaining > 0) {
-          notifications.push({
-            id: `tenant-expire-admin-${tenant.id}`,
-            type: 'subscription',
-            title: `Admin Alert: Tenant Expiring`,
-            desc: `The subscriber group "${tenant.name}" is expiring in ${daysRemaining} days (${cleanDate(tenant.trialEndDate)}).`,
-            severity: 'medium'
-          });
-        }
-      }
-    });
   }
 
   return (
@@ -796,6 +825,23 @@ export default function App() {
           </button>
         </div>
       </header>
+
+      {/* SYSTEM ANNOUNCEMENTS */}
+      {announcements.filter(a => a.active).map(ann => (
+        <div key={ann.id} className={`w-full px-6 py-2.5 flex items-center justify-between text-sm shadow-sm z-20 shrink-0
+          ${ann.type === 'info' ? 'bg-blue-600 text-white' : ''}
+          ${ann.type === 'warning' ? 'bg-amber-500 text-white' : ''}
+          ${ann.type === 'success' ? 'bg-emerald-600 text-white' : ''}
+        `}>
+          <div className="flex items-center gap-3">
+            <AlertCircle className="w-4 h-4 shrink-0" />
+            <div>
+              <span className="font-bold mr-2">{ann.title}:</span>
+              <span>{ann.message}</span>
+            </div>
+          </div>
+        </div>
+      ))}
 
       <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
         

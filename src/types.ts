@@ -1,5 +1,22 @@
+export interface TenantModules {
+  payroll?: boolean;
+  inventory?: boolean;
+  ecommerce?: boolean;
+  fixedAssets?: boolean;
+}
+
+export interface SystemAnnouncement {
+  id: string;
+  title: string;
+  message: string;
+  type: 'info' | 'warning' | 'success';
+  active: boolean;
+  createdAt: string;
+}
+
 export interface Tenant {
   id: string;
+  modules?: TenantModules;
   name: string;
   tin?: string;
   address?: string;
