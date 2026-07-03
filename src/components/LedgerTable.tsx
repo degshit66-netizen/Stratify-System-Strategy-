@@ -31,7 +31,6 @@ interface LedgerTableProps {
   onVoid: (id: number) => void;
   onDelete?: (id: number) => void;
   onPrintDV?: (entry: LedgerEntry) => void;
-  onGenerate2307?: (entry: LedgerEntry) => void;
   lockedQuarters?: Record<string, boolean>;
   lockedMonths?: Record<string, boolean>;
   onUpdateLocks?: (months: Record<string, boolean>, quarters: Record<string, boolean>) => void;
@@ -52,7 +51,6 @@ export const LedgerTable: React.FC<LedgerTableProps> = ({
   onVoid,
   onDelete,
   onPrintDV,
-  onGenerate2307,
   lockedQuarters = {},
   lockedMonths = {},
   onUpdateLocks,
@@ -492,15 +490,6 @@ export const LedgerTable: React.FC<LedgerTableProps> = ({
                                 title="Print Disbursement Voucher"
                               >
                                 <FileText className="w-3.5 h-3.5" />
-                              </button>
-                            )}
-                            {onGenerate2307 && (
-                              <button 
-                                onClick={() => onGenerate2307(row)}
-                                className="p-1.5 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:text-indigo-500 dark:hover:text-indigo-400 rounded-lg transition-colors border border-transparent hover:border-zinc-200 dark:hover:border-zinc-700 shadow-sm"
-                                title="Generate BIR Form 2307"
-                              >
-                                <Printer className="w-3.5 h-3.5" />
                               </button>
                             )}
                           </>

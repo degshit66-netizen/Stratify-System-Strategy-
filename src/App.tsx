@@ -63,7 +63,6 @@ import { COAModule } from './components/COAModule';
 import { EcommerceModule } from './components/EcommerceModule';
 import { PayrollModule } from './components/PayrollModule';
 import { HRModule } from './components/HRModule';
-import { Form2307Module } from './components/Form2307Module';
 import { DisbursementVoucherModal } from './components/DisbursementVoucherModal';
 import { AuditTrailModule } from './components/AuditTrailModule';
 import { Auth } from './components/Auth';
@@ -95,7 +94,6 @@ export type ActiveTab =
   | 'AuditTrail'
   | 'Ecommerce'
   | 'HR'
-  | 'Form2307'
   | 'Payroll';
 
 interface Toast {
@@ -143,35 +141,9 @@ export default function App() {
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [editingEntry, setEditingEntry] = useState<LedgerEntry | undefined>(undefined);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [form2307InitialData, setForm2307InitialData] = useState<any>(null);
 
   // --- Custom Hooks ---
   const { isTrialExpired } = useTrialMonitor(currentTenant);
-
-  const handleGenerate2307 = (entry: LedgerEntry) => {
-    // Determine ATC and rate based on category or other properties if needed
-    // For now, let's pre-fill with defaults and the gross amount
-    const initialData = {
-      payee: {
-        name: entry.payor, // In ledger, payor is often the counterparty
-        tin: entry.tin || "",
-        address: "", // We might not have this in ledger
-      },
-      periodFrom: entry.date,
-      periodTo: entry.date,
-      transactions: [
-        { 
-          atc: "WI158", 
-          m1: entry.gross, 
-          m2: "", 
-          m3: "", 
-          rate: "2" 
-        }
-      ]
-    };
-    setForm2307InitialData(initialData);
-    setActiveTab('Form2307');
-  };
 
   // --- Memoized Values ---
   const coa = useMemo(() => Object.entries(getCompleteChartOfAccounts()).map(([code, value]) => ({ ...value, code })), []);
@@ -671,7 +643,6 @@ export default function App() {
       title: 'Compliance & Reports',
       items: [
         { id: 'Reports', label: 'Tax Returns', icon: <Landmark className="w-4 h-4 mr-3" /> },
-        { id: 'Form2307', label: 'BIR Form 2307', icon: <FileCheck2 className="w-4 h-4 mr-3" /> },
         { id: 'Books', label: 'BIR Books of Accounts', icon: <FileSpreadsheet className="w-4 h-4 mr-3" /> },
         { id: 'FS', label: 'Financial Statements', icon: <PieChart className="w-4 h-4 mr-3" /> },
         { id: 'AuditTrail', label: 'System Audit Trail', icon: <ShieldCheck className="w-4 h-4 mr-3" /> }
@@ -1010,7 +981,6 @@ export default function App() {
                   onVoid={handleVoidEntry} 
                   onDelete={handleDeleteEntry}
                   onEdit={handleEditEntry}
-                  onGenerate2307={handleGenerate2307}
                   yearFilter={yearFilter}
                   monthFilter={monthFilter}
                   quarterFilter={quarterFilter}
@@ -1029,7 +999,6 @@ export default function App() {
                   yearFilter={yearFilter}
                   monthFilter={monthFilter}
                   quarterFilter={quarterFilter}
-                  onGenerate2307={handleGenerate2307}
                   onOpenSalesModal={() => {
                     setEntryModalType('Sales');
                     setScanResult(null);
@@ -1138,14 +1107,6 @@ export default function App() {
               )}
               {activeTab === 'HR' && (
                 <HRModule showToast={showToast} />
-              )}
-              {activeTab === 'Form2307' && (
-                <Form2307Module 
-                  currentTenant={currentTenant}
-                  showToast={showToast}
-                  isAdmin={currentUser?.role === 'superadmin'}
-                  initialData={form2307InitialData}
-                />
               )}
               {activeTab === 'AuditTrail' && (
                 <AuditTrailModule />

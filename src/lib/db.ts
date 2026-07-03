@@ -181,6 +181,15 @@ export const loadUsersFromFirebase = async (): Promise<User[]> => {
   }
 };
 
+export const getUserByEmail = async (email: string): Promise<User | null> => {
+  try {
+    const users = await loadUsersFromFirebase();
+    return users.find(u => u.email.toLowerCase() === email.toLowerCase()) || null;
+  } catch (e) {
+    return null;
+  }
+};
+
 export const syncConfigToFirebase = async (key: string, value: string) => {
   try {
     await setDoc(doc(db, 'configurations', key), { 

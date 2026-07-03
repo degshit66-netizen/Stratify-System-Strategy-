@@ -142,10 +142,6 @@ const screenButtonGuides: Record<ActiveTab, ButtonGuide[]> = {
   ],
   AuditTrail: [
     { name: 'View Audit logs', actionDesc: 'Displays complete database history, showing who created, edited, or deleted records.', tip: 'Maintains airtight security logs to prevent fraudulent internal bookkeeping.' }
-  ],
-  Form2307: [
-    { name: 'New 2307 Entry', actionDesc: 'Launches the BIR 2307 certification builder.', tip: 'Generates the official Certificate of Creditable Tax Withheld at Source.' },
-    { name: 'Print/Download PDF', actionDesc: 'Exports the form to official January 2018 ENCS layout.', tip: 'Includes dynamic barcodes, official BIR logo, and high-fidelity typography.' }
   ]
 };
 

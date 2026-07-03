@@ -22,7 +22,6 @@ interface SalesModuleProps {
   monthFilter: string;
   quarterFilter: string;
   onOpenSalesModal: () => void;
-  onGenerate2307?: (entry: LedgerEntry) => void;
 }
 
 export const SalesModule: React.FC<SalesModuleProps> = ({
@@ -30,8 +29,7 @@ export const SalesModule: React.FC<SalesModuleProps> = ({
   yearFilter,
   monthFilter,
   quarterFilter,
-  onOpenSalesModal,
-  onGenerate2307
+  onOpenSalesModal
 }) => {
   const salesRows = ledger.filter(r => r.type === 'Sales' && r.status !== 'Void' && inPeriod(r, yearFilter, monthFilter, quarterFilter));
   
@@ -237,7 +235,6 @@ export const SalesModule: React.FC<SalesModuleProps> = ({
                 <th className="px-5 py-3 text-right">Net</th>
                 <th className="px-5 py-3 text-right">VAT</th>
                 <th className="px-5 py-3 text-right">Cash Inflow</th>
-                <th className="px-5 py-3 text-center no-print">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800 text-xs">
@@ -262,21 +259,10 @@ export const SalesModule: React.FC<SalesModuleProps> = ({
                   <td className="px-5 py-3.5 text-right font-medium font-mono text-zinc-500 dark:text-zinc-400">{displayMoney(parseNum(r.net) || (r.taxType === 'Vatable' ? parseNum(r.gross) / 1.12 : parseNum(r.gross)))}</td>
                   <td className="px-5 py-3.5 text-right font-medium font-mono text-zinc-400 dark:text-zinc-500">{displayMoney(r.vat)}</td>
                   <td className="px-5 py-3.5 text-right font-bold font-mono text-zinc-900 dark:text-zinc-100">{displayMoney(r.cash)}</td>
-                  <td className="px-5 py-3.5 text-center no-print">
-                    {onGenerate2307 && (
-                      <button 
-                        onClick={() => onGenerate2307(r)}
-                        className="p-1.5 hover:bg-blue-50 dark:hover:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-lg transition-colors border border-transparent hover:border-blue-100 dark:hover:border-blue-800/50"
-                        title="Generate Form 2307"
-                      >
-                        <Printer className="w-4 h-4" />
-                      </button>
-                    )}
-                  </td>
                 </tr>
               )) : (
                 <tr>
-                  <td colSpan={9} className="px-5 py-8 text-center text-zinc-400 dark:text-zinc-500 italic">No sales transactions posted in this period.</td>
+                  <td colSpan={8} className="px-5 py-8 text-center text-zinc-400 dark:text-zinc-500 italic">No sales transactions posted in this period.</td>
                 </tr>
               )}
             </tbody>
