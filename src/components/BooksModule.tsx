@@ -439,7 +439,9 @@ export const BooksModule: React.FC<BooksModuleProps> = ({
   // RELIEF DAT File Generator
   const handleDownloadReliefDat = () => {
     if (reliefRows.length === 0) {
-      alert('No data available for the selected quarter and year.');
+      if (showToast) {
+        showToast('No data available for the selected quarter and year.', 'error');
+      }
       return;
     }
 

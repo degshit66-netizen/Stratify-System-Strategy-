@@ -51,7 +51,7 @@ export const HRModule: React.FC<HRModuleProps> = ({ showToast }) => {
       }
     }
     
-    // load time & leaves dummy / stored data
+    // Load HR stored data
     try {
       const storedTime = localStorage.getItem('stratify_hr_time');
       if (storedTime) setTimeLogs(JSON.parse(storedTime));

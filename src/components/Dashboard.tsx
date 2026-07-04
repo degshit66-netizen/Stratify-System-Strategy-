@@ -146,7 +146,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
     .sort((a, b) => b.value - a.value)
     .slice(0, 6);
 
-  // Compliance Progress Mock (Calculated based on ledger density)
+  // Compliance Progress (Calculated based on ledger density)
   const complianceScore = Math.min(100, Math.round((filteredRows.length / 50) * 100));
   const isVatReady = filteredRows.some(r => r.taxType === 'Vatable');
 

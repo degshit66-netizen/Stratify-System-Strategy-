@@ -71,6 +71,7 @@ import { Auth } from './components/Auth';
 import { SuperAdminDashboard } from './components/SuperAdminDashboard';
 import { FeatureTour } from './components/FeatureTour';
 import { SubscriptionPrompt } from './components/SubscriptionPrompt';
+import { OnboardingWelcome } from './components/OnboardingWelcome';
 import { useTrialMonitor } from './hooks/useTrialMonitor';
 import { loadTenantsFromFirebase, loadUsersFromFirebase, syncTenantToFirebase, syncUserToFirebase, loadStorageFromFirebase, loadConfigFromFirebase } from './lib/db';
 
@@ -111,6 +112,7 @@ export default function App() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [currentTenant, setCurrentTenant] = useState<Tenant | null>(null);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [showTenantOnboarding, setShowTenantOnboarding] = useState(false);
   const [tenants, setTenants] = useState<Tenant[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [logoError, setLogoError] = useState(false);
@@ -128,14 +130,14 @@ export default function App() {
   const [isDarkMode, setIsDarkMode] = useState(() => localStorage.getItem('stratify_theme') !== 'light');
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const [companyConfig, setCompanyConfig] = useState<CompanyConfig>({
-    companyName: 'STRATIFY (Strategy + Simplify)',
-    tin: '009-887-112-000',
-    address: 'Ortigas Center, Pasig City, Metro Manila',
+    companyName: 'STRATIFY System',
+    tin: '',
+    address: '',
     registeredVat: true,
-    secPermitNo: 'SEC-PH-2026-99120',
-    ptuNo: 'PTU-11223344-STRATIFY',
+    secPermitNo: '',
+    ptuNo: '',
     authorizedPIN: '1234',
-    logoUrl: 'https://i.postimg.cc/5yGwSWWR/1782659487700.png'
+    logoUrl: ''
   });
   const [yearFilter, setYearFilter] = useState(() => new Date().getFullYear().toString());
   const [monthFilter, setMonthFilter] = useState('ALL');
@@ -289,14 +291,14 @@ export default function App() {
 
       // Fallback to local storage if Firebase is empty (migration)
       if (loadedTenants.length === 0) {
-        const tStr = localStorage.getItem('mock_tenants');
+        const tStr = localStorage.getItem('stratify_tenants');
         loadedTenants = tStr ? JSON.parse(tStr) : [];
         // Sync to firebase
         loadedTenants.forEach(t => syncTenantToFirebase(t));
       }
       
       if (loadedUsers.length === 0) {
-        const uStr = localStorage.getItem('mock_users');
+        const uStr = localStorage.getItem('stratify_users');
         loadedUsers = uStr ? JSON.parse(uStr) : [];
         // Sync to firebase
         loadedUsers.forEach(u => syncUserToFirebase(u));
@@ -317,9 +319,14 @@ export default function App() {
             setCurrentUser(u);
             if (tid) {
                const t = loadedTenants.find(x => x.id === tid);
-               if (t) {
+                              if (t) {
                   await loadStorageFromFirebase(tid);
                   setCurrentTenant(t);
+                  
+                  const onboardedKey = `stratify_onboarded_tenant_${t.id}`;
+                  if (!localStorage.getItem(onboardedKey)) {
+                    setShowTenantOnboarding(true);
+                  }
                }
             }
          }
@@ -338,15 +345,13 @@ export default function App() {
 
   useEffect(() => {
     if (tenants.length > 0) {
-      localStorage.setItem('mock_tenants', JSON.stringify(tenants));
-      tenants.forEach(t => syncTenantToFirebase(t));
+      localStorage.setItem('stratify_tenants', JSON.stringify(tenants));
     }
   }, [tenants]);
 
   useEffect(() => {
     if (users.length > 0) {
-      localStorage.setItem('mock_users', JSON.stringify(users));
-      users.forEach(u => syncUserToFirebase(u));
+      localStorage.setItem('stratify_users', JSON.stringify(users));
     }
   }, [users]);
 
@@ -357,20 +362,26 @@ export default function App() {
     setUsers(prev => {
       if (!prev.find(u => u.id === user.id)) {
         const next = [...prev, user];
-        localStorage.setItem('mock_users', JSON.stringify(next));
+        localStorage.setItem('stratify_users', JSON.stringify(next));
         return next;
       }
       return prev;
     });
 
-    if (tenant) {
+        if (tenant) {
       localStorage.setItem('current_tenant_id', tenant.id);
       setCurrentTenant(tenant);
+      
+      const onboardedKey = `stratify_onboarded_tenant_${tenant.id}`;
+      if (!localStorage.getItem(onboardedKey)) {
+        setShowTenantOnboarding(true);
+      }
+      
 
       setTenants(prev => {
         if (!prev.find(t => t.id === tenant.id)) {
           const next = [...prev, tenant];
-          localStorage.setItem('mock_tenants', JSON.stringify(next));
+          localStorage.setItem('stratify_tenants', JSON.stringify(next));
           return next;
         }
         return prev;
@@ -390,7 +401,7 @@ export default function App() {
     if (currentTenant) {
       const updatedTenants = tenants.map(t => t.id === currentTenant.id ? { ...t, isOnline: false } : t);
       setTenants(updatedTenants);
-      localStorage.setItem('mock_tenants', JSON.stringify(updatedTenants));
+      localStorage.setItem('stratify_tenants', JSON.stringify(updatedTenants));
     }
     localStorage.removeItem('current_user_id');
     localStorage.removeItem('current_tenant_id');
@@ -408,12 +419,7 @@ export default function App() {
       if (stored) {
         setStratifyTasks(JSON.parse(stored));
       } else {
-        const defaults: SchedulerTask[] = [
-          { id: 1, title: 'BIR 2550M (Monthly Value-Added Tax Declaration)', dueDate: `${new Date().getFullYear()}-07-20`, module: 'Value-Added Tax', status: 'Open' },
-          { id: 2, title: 'Annual Income Tax 1702 Return Compilation', dueDate: `${new Date().getFullYear()}-04-15`, module: 'Income Tax', status: 'Done' },
-          { id: 3, title: 'Monthly SEC/BIR S.A.S. Submission', dueDate: `${new Date().getFullYear()}-07-10`, module: 'Financial Statements', status: 'In Progress' },
-          { id: 4, title: 'Submit Bound Loose-Leaf Books (Affidavit Annex C)', dueDate: `${new Date().getFullYear()}-01-30`, module: 'Loose Leaf Compliance', status: 'Open' }
-        ];
+                const defaults: SchedulerTask[] = [];
         setStratifyTasks(defaults);
         localStorage.setItem('stratify_tasks', JSON.stringify(defaults));
       }
@@ -730,6 +736,17 @@ export default function App() {
         tenant={currentTenant}
         user={currentUser}
         onLogout={handleLogout}
+      />
+    );
+  }
+  if (showTenantOnboarding && currentTenant) {
+    return (
+      <OnboardingWelcome 
+        tenant={currentTenant} 
+        onComplete={() => {
+          localStorage.setItem(`stratify_onboarded_tenant_${currentTenant.id}`, 'true');
+          setShowTenantOnboarding(false);
+        }} 
       />
     );
   }

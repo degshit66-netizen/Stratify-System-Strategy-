@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
+import { SubscriptionRequestModal } from './SubscriptionRequestModal';
+import { ConfirmPaymentModal } from './ConfirmPaymentModal';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, CheckCircle, ShieldAlert, Award, FileText, UserPlus, Trash2, Mail, User, Shield, Upload, Laptop, Smartphone, Tablet, DownloadCloud, Globe, RefreshCw, BookOpen } from 'lucide-react';
-import { deleteUserFromFirebase } from '../lib/db';
+import { X, CheckCircle, ShieldAlert, Award, FileText, UserPlus, Trash2, Mail, User, Shield, Upload, Laptop, Smartphone, Tablet, DownloadCloud, Globe, RefreshCw, BookOpen, CreditCard } from 'lucide-react';
+import { deleteUserFromFirebase, syncTenantToFirebase, syncSubscriptionRequestToFirebase, deleteSubscriptionRequestFromFirebase } from '../lib/db';
 import { CompanyConfig, Tenant, User as SystemUser, LedgerEntry } from '../types';
 
 interface SettingsModalProps {
@@ -49,7 +51,20 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
   // Billing & Subscription states
   const [billingPlan, setBillingPlan] = useState<'monthly' | 'annual'>('monthly');
+  const [showSubRequestModal, setShowSubRequestModal] = useState(false);
+  const [showConfirmPaymentModal, setShowConfirmPaymentModal] = useState(false);
   const [requestedUsers, setRequestedUsers] = useState<number>(5);
+
+  // Custom dialogs/confirm state
+  const [confirmDialog, setConfirmDialog] = useState<{
+    title?: string;
+    message: string;
+    confirmLabel?: string;
+    cancelLabel?: string;
+    type?: 'rose' | 'indigo' | 'emerald';
+    onConfirm: () => void;
+    onCancel?: () => void;
+  } | null>(null);
 
   React.useEffect(() => {
     try {
@@ -93,26 +108,90 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     }
   }, [currentTenant]);
 
-  const handleSendSubscriptionRequest = () => {
+  const handleSendSubscriptionRequest = async () => {
     if (!currentTenant) return;
     if (requestedUsers < 1) {
       showToast('User capacity must be at least 1.', 'error');
       return;
     }
 
-    const updated: Tenant = {
-      ...currentTenant,
-      subscriptionRequestStatus: 'pending',
-      subscriptionRequestPlan: billingPlan,
-      subscriptionRequestUserLimit: requestedUsers
-    };
+    try {
+      const reqId = `sub-req-${currentTenant.id}`;
+      const request = {
+        id: reqId,
+        tenantId: currentTenant.id,
+        name: currentTenant.name,
+        companyName: currentTenant.name,
+        address: config.address || currentTenant.address || '',
+        contactNumber: '',
+        proofOfPaymentBase64: '',
+        createdAt: new Date().toISOString(),
+        status: 'pending' as const,
+        plan: billingPlan,
+        users: requestedUsers
+      };
 
-    if (onUpdateTenant) {
-      onUpdateTenant(updated);
-      showToast('Subscription request submitted to Super Admin for manual approval!', 'success');
-    } else {
-      showToast('Failed to connect to tenant state updates.', 'error');
+      // 1. Save subscription request document in Firestore immediately
+      await syncSubscriptionRequestToFirebase(request);
+
+      // 2. Update the Tenant document in Firestore
+      const updatedTenant: Tenant = {
+        ...currentTenant,
+        subscriptionRequestStatus: 'pending',
+        subscriptionRequestPlan: billingPlan,
+        subscriptionRequestUserLimit: requestedUsers
+      };
+      await syncTenantToFirebase(updatedTenant);
+
+      // 3. Update parent React state
+      if (onUpdateTenant) {
+        onUpdateTenant(updatedTenant);
+      }
+      
+      showToast('Subscription request submitted immediately to Admin list!', 'success');
+    } catch (err) {
+      console.error(err);
+      showToast('Failed to submit subscription request.', 'error');
     }
+  };
+
+  const handleCancelSubscriptionRequest = async () => {
+    if (!currentTenant) return;
+    
+    setConfirmDialog({
+      title: 'Cancel Subscription Request',
+      message: 'Are you sure you want to cancel your pending subscription request? This will allow you to edit your plan and user capacity.',
+      confirmLabel: 'Yes, Cancel Request',
+      cancelLabel: 'Keep Request',
+      type: 'rose',
+      onConfirm: async () => {
+        try {
+          const reqId = `sub-req-${currentTenant.id}`;
+
+          // 1. Delete subscription request from Firestore
+          await deleteSubscriptionRequestFromFirebase(reqId);
+
+          // 2. Clear request fields on the Tenant document in Firestore
+          const updatedTenant: Tenant = {
+            ...currentTenant,
+            subscriptionRequestStatus: null as any,
+            subscriptionRequestPlan: undefined,
+            subscriptionRequestUserLimit: undefined
+          };
+          await syncTenantToFirebase(updatedTenant);
+
+          // 3. Update parent React state
+          if (onUpdateTenant) {
+            onUpdateTenant(updatedTenant);
+          }
+
+          showToast('Subscription request cancelled successfully. You can now edit and resubmit.', 'success');
+        } catch (err) {
+          console.error(err);
+          showToast('Failed to cancel subscription request.', 'error');
+        }
+      }
+    });
   };
 
   const handleSave = () => {
@@ -272,29 +351,30 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           return;
         }
 
-        const option = confirm(
-          `Successfully parsed ${parsed.length} ledger entries.\n\nClick "OK" to MERGE these entries with your current ledger.\nClick "Cancel" to OVERWRITE your entire ledger with this backup.`
-        );
-
-        let finalLedger: LedgerEntry[] = [];
-        if (option) {
-          // Merge
-          const currentLedgerMap = new Map((ledger || []).map(item => [item.id, item]));
-          parsed.forEach(item => {
-            currentLedgerMap.set(item.id, item);
-          });
-          finalLedger = Array.from(currentLedgerMap.values()).sort((a, b) => b.id - a.id);
-          showToast(`Successfully merged ${parsed.length} entries!`, 'success');
-        } else {
-          // Overwrite
-          
-          finalLedger = parsed;
-          showToast(`Successfully restored ${parsed.length} entries!`, 'success');
-        }
-
-        if (onImportLedger) {
-          onImportLedger(finalLedger);
-        }
+        setConfirmDialog({
+          title: 'Database Import Options',
+          message: `Successfully parsed ${parsed.length} ledger entries. Please choose how you want to apply this backup to your general ledger:\n\n• MERGE: Adds imported entries and keeps existing entries.\n• OVERWRITE: Replaces your entire ledger with this backup.`,
+          confirmLabel: 'Merge with Current',
+          cancelLabel: 'Overwrite Ledger',
+          type: 'indigo',
+          onConfirm: () => {
+            const currentLedgerMap = new Map((ledger || []).map(item => [item.id, item]));
+            parsed.forEach(item => {
+              currentLedgerMap.set(item.id, item);
+            });
+            const finalLedger = Array.from(currentLedgerMap.values()).sort((a, b) => b.id - a.id);
+            if (onImportLedger) {
+              onImportLedger(finalLedger);
+            }
+            showToast(`Successfully merged ${parsed.length} entries!`, 'success');
+          },
+          onCancel: () => {
+            if (onImportLedger) {
+              onImportLedger(parsed);
+            }
+            showToast(`Successfully restored ${parsed.length} entries!`, 'success');
+          }
+        });
       } catch (err) {
         showToast('Failed to parse the backup JSON file.', 'error');
       }
@@ -304,12 +384,20 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   };
 
   const handleBackupReset = () => {
-    if (!confirm('This resets all mock databases (Ledger, COA, Inventory, Contacts, Tasks) to original default values. Proceed?')) return;
-    localStorage.clear();
-    showToast('All local storage databases cleared. Page will refresh shortly.', 'info');
-    setTimeout(() => {
-      window.location.reload();
-    }, 1500);
+    setConfirmDialog({
+      title: 'Emergency System Reset',
+      message: 'This will reset all local databases (Ledger, COA, Inventory, Contacts, Tasks) to original default values. This action is IRREVERSIBLE. Do you wish to proceed?',
+      confirmLabel: 'Proceed Reset',
+      cancelLabel: 'Abort Reset',
+      type: 'rose',
+      onConfirm: () => {
+        localStorage.clear();
+        showToast('All local storage databases cleared. Page will refresh shortly.', 'info');
+        setTimeout(() => {
+          window.location.reload();
+        }, 1500);
+      }
+    });
   };
 
   // Filter users to current tenant only
@@ -819,22 +907,43 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
                     {/* Submit / Status Button */}
                     {currentTenant.subscriptionRequestStatus === 'pending' ? (
-                      <div className="bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 rounded-xl p-4 text-xs space-y-1.5">
-                        <div className="flex items-center gap-1.5 font-bold uppercase tracking-wider text-[10px]">
-                          <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
-                          Awaiting Approval
+                      <div className="space-y-3">
+                        <div className="bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 rounded-xl p-4 text-xs space-y-1.5">
+                          <div className="flex items-center gap-1.5 font-bold uppercase tracking-wider text-[10px]">
+                            <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
+                            Awaiting Approval
+                          </div>
+                          <p className="leading-relaxed text-[11px]">
+                            You have a pending request for a <strong>{currentTenant.subscriptionRequestPlan === 'annual' ? 'Annual' : 'Monthly'}</strong> premium plan with <strong>{currentTenant.subscriptionRequestUserLimit} user seat(s)</strong> capacity (Total Cost: ₱{
+                              (currentTenant.subscriptionRequestPlan === 'annual'
+                                ? (2999 + (currentTenant.subscriptionRequestUserLimit || 0) * 100) * 12
+                                : (2999 + (currentTenant.subscriptionRequestUserLimit || 0) * 100)
+                              ).toLocaleString(undefined, { minimumFractionDigits: 2 })
+                            }).
+                          </p>
+                          <p className="text-[10px] text-zinc-500">
+                            The Super Admin is reviewing your subscription request and will approve it shortly.
+                          </p>
                         </div>
-                        <p className="leading-relaxed text-[11px]">
-                          You have a pending request for a <strong>{currentTenant.subscriptionRequestPlan === 'annual' ? 'Annual' : 'Monthly'}</strong> premium plan with <strong>{currentTenant.subscriptionRequestUserLimit} user seat(s)</strong> capacity (Total Cost: ₱{
-                            (currentTenant.subscriptionRequestPlan === 'annual'
-                              ? (2999 + (currentTenant.subscriptionRequestUserLimit || 0) * 100) * 12
-                              : (2999 + (currentTenant.subscriptionRequestUserLimit || 0) * 100)
-                            ).toLocaleString(undefined, { minimumFractionDigits: 2 })
-                          }).
-                        </p>
-                        <p className="text-[10px] text-zinc-500">
-                          The Super Admin is reviewing your subscription request and will approve it shortly.
-                        </p>
+
+                        <div className="flex flex-col sm:flex-row gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setShowConfirmPaymentModal(true)}
+                            className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 text-xs rounded-xl uppercase tracking-wider transition-all shadow-md flex items-center justify-center gap-1.5"
+                          >
+                            <CreditCard className="w-4 h-4" />
+                            Confirm Payment
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={handleCancelSubscriptionRequest}
+                            className="flex-1 border border-rose-500/30 hover:border-rose-500 hover:bg-rose-500/10 text-rose-500 font-bold py-3 text-xs rounded-xl uppercase tracking-wider transition-all flex items-center justify-center gap-1.5"
+                          >
+                            Cancel Request
+                          </button>
+                        </div>
                       </div>
                     ) : (
                       <button
@@ -988,6 +1097,59 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               </button>
             </div>
           </motion.div>
+        {currentTenant && <SubscriptionRequestModal isOpen={showSubRequestModal} onClose={() => setShowSubRequestModal(false)} tenant={currentTenant} showToast={showToast} plan={billingPlan} users={requestedUsers} onUpdateTenant={onUpdateTenant} />}
+        {currentTenant && <ConfirmPaymentModal isOpen={showConfirmPaymentModal} onClose={() => setShowConfirmPaymentModal(false)} tenant={currentTenant} showToast={showToast} />}
+        {confirmDialog && (
+          <div className="fixed inset-0 bg-zinc-950/80 z-[250] flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in">
+            <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl w-full max-w-md p-6 shadow-2xl relative overflow-hidden text-left">
+              <div className={`absolute top-0 left-0 w-full h-1.5 ${
+                confirmDialog.type === 'rose' 
+                  ? 'bg-rose-500' 
+                  : confirmDialog.type === 'emerald' 
+                    ? 'bg-emerald-500' 
+                    : 'bg-indigo-500'
+              }`} />
+              
+              <h3 className="text-sm font-black text-zinc-900 dark:text-white uppercase tracking-wider mb-2">
+                {confirmDialog.title || 'System Confirmation'}
+              </h3>
+              <p className="text-xs text-zinc-600 dark:text-zinc-300 leading-relaxed mb-6 whitespace-pre-line">
+                {confirmDialog.message}
+              </p>
+              
+              <div className="flex justify-end gap-3 pt-4 border-t border-zinc-100 dark:border-zinc-800">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (confirmDialog.onCancel) {
+                      confirmDialog.onCancel();
+                    }
+                    setConfirmDialog(null);
+                  }}
+                  className="px-4 py-2 text-[10px] font-bold text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200 uppercase tracking-widest transition-colors"
+                >
+                  {confirmDialog.cancelLabel || 'Cancel'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    confirmDialog.onConfirm();
+                    setConfirmDialog(null);
+                  }}
+                  className={`px-4 py-2 text-[10px] font-bold text-white rounded-xl uppercase tracking-widest transition-all ${
+                    confirmDialog.type === 'rose'
+                      ? 'bg-rose-600 hover:bg-rose-500 shadow-sm hover:shadow-rose-500/20'
+                      : confirmDialog.type === 'emerald'
+                        ? 'bg-emerald-600 hover:bg-emerald-500 shadow-sm hover:shadow-emerald-500/20'
+                        : 'bg-indigo-600 hover:bg-indigo-500 shadow-sm hover:shadow-indigo-500/20'
+                  }`}
+                >
+                  {confirmDialog.confirmLabel || 'Confirm'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
         </>
       )}
     </AnimatePresence>

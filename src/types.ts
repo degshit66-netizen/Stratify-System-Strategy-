@@ -338,3 +338,26 @@ export interface Form2307Record {
   tenantId: string;
   createdAt: string;
 }
+
+
+export interface SubscriptionRequest {
+  id: string;
+  tenantId: string;
+  name: string;
+  companyName: string;
+  address: string;
+  contactNumber: string;
+  proofOfPaymentBase64?: string;
+  createdAt: string;
+  status: 'pending' | 'approved' | 'rejected';
+}
+
+export interface PasswordResetRequest {
+  id: string;
+  email: string;
+  companyName: string;
+  tenantId?: string;
+  status: 'pending' | 'resolved' | 'rejected';
+  createdAt: string;
+}
+

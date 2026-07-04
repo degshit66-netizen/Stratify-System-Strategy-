@@ -81,6 +81,16 @@ export const Form2307Module: React.FC<Form2307ModuleProps> = ({
   const [transactions, setTransactions] = useState<any[]>([{ atc: "WI158", m1: "", m2: "", m3: "", rate: "2" }]);
   const [signature, setSignature] = useState<string | null>(null);
 
+  // Custom confirmation modal state
+  const [confirmDialog, setConfirmDialog] = useState<{
+    title?: string;
+    message: string;
+    confirmLabel?: string;
+    cancelLabel?: string;
+    type?: 'rose' | 'indigo' | 'emerald';
+    onConfirm: () => void;
+  } | null>(null);
+
   useEffect(() => {
     if (initialData) {
       if (initialData.payee) setPayee(prev => ({ ...prev, ...initialData.payee }));
@@ -128,14 +138,23 @@ export const Form2307Module: React.FC<Form2307ModuleProps> = ({
   };
 
   const handleClearAllRecords = async () => {
-    if (!currentTenant?.id || !window.confirm("CRITICAL: This will permanently delete ALL 2307 records for this tenant. Proceed?")) return;
-    try {
-      const batchDelete = forms.map(f => deleteDoc(doc(db, `tenants/${currentTenant.id}/forms2307/${f.id}`)));
-      await Promise.all(batchDelete);
-      showToast("All records cleared successfully.", "info");
-    } catch (e) {
-      showToast("Error clearing records.", "error");
-    }
+    if (!currentTenant?.id) return;
+    setConfirmDialog({
+      title: 'Clear All 2307 Records',
+      message: 'CRITICAL: This will permanently delete ALL 2307 records for this tenant. This action is IRREVERSIBLE. Do you wish to proceed?',
+      confirmLabel: 'Delete All',
+      cancelLabel: 'Keep Records',
+      type: 'rose',
+      onConfirm: async () => {
+        try {
+          const batchDelete = forms.map(f => deleteDoc(doc(db, `tenants/${currentTenant.id}/forms2307/${f.id}`)));
+          await Promise.all(batchDelete);
+          showToast("All records cleared successfully.", "info");
+        } catch (e) {
+          showToast("Error clearing records.", "error");
+        }
+      }
+    });
   };
 
   useEffect(() => {
@@ -218,13 +237,22 @@ export const Form2307Module: React.FC<Form2307ModuleProps> = ({
   };
 
   const handleDelete = async (id: string) => {
-    if (!currentTenant?.id || !window.confirm("Delete this form?")) return;
-    try {
-      await deleteDoc(doc(db, `tenants/${currentTenant.id}/forms2307/${id}`));
-      showToast("Deleted.", "info");
-    } catch (e) {
-      showToast("Error.", "error");
-    }
+    if (!currentTenant?.id) return;
+    setConfirmDialog({
+      title: 'Delete 2307 Form',
+      message: 'Are you sure you want to delete this BIR Form 2307 record?',
+      confirmLabel: 'Delete Form',
+      cancelLabel: 'Cancel',
+      type: 'rose',
+      onConfirm: async () => {
+        try {
+          await deleteDoc(doc(db, `tenants/${currentTenant.id}/forms2307/${id}`));
+          showToast("Deleted.", "info");
+        } catch (e) {
+          showToast("Error.", "error");
+        }
+      }
+    });
   };
 
   const handleTemplateUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -703,6 +731,53 @@ export const Form2307Module: React.FC<Form2307ModuleProps> = ({
           signature={signature}
         />
       </div>
+
+      {confirmDialog && (
+        <div className="fixed inset-0 bg-zinc-950/80 z-[250] flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl w-full max-w-md p-6 shadow-2xl relative overflow-hidden text-left">
+            <div className={`absolute top-0 left-0 w-full h-1.5 ${
+              confirmDialog.type === 'rose' 
+                ? 'bg-rose-500' 
+                : confirmDialog.type === 'emerald' 
+                  ? 'bg-emerald-500' 
+                  : 'bg-indigo-500'
+            }`} />
+            
+            <h3 className="text-sm font-black text-zinc-900 dark:text-white uppercase tracking-wider mb-2">
+              {confirmDialog.title || 'System Confirmation'}
+            </h3>
+            <p className="text-xs text-zinc-600 dark:text-zinc-300 leading-relaxed mb-6 whitespace-pre-line">
+              {confirmDialog.message}
+            </p>
+            
+            <div className="flex justify-end gap-3 pt-4 border-t border-zinc-100 dark:border-zinc-800">
+              <button
+                type="button"
+                onClick={() => setConfirmDialog(null)}
+                className="px-4 py-2 text-[10px] font-bold text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200 uppercase tracking-widest transition-colors"
+              >
+                {confirmDialog.cancelLabel || 'Cancel'}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  confirmDialog.onConfirm();
+                  setConfirmDialog(null);
+                }}
+                className={`px-4 py-2 text-[10px] font-bold text-white rounded-xl uppercase tracking-widest transition-all ${
+                  confirmDialog.type === 'rose'
+                    ? 'bg-rose-600 hover:bg-rose-500 shadow-sm hover:shadow-rose-500/20'
+                    : confirmDialog.type === 'emerald'
+                      ? 'bg-emerald-600 hover:bg-emerald-500 shadow-sm hover:shadow-emerald-500/20'
+                      : 'bg-indigo-600 hover:bg-indigo-500 shadow-sm hover:shadow-indigo-500/20'
+                }`}
+              >
+                {confirmDialog.confirmLabel || 'Confirm'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

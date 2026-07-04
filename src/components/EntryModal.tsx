@@ -5,6 +5,7 @@ import * as XLSX from "xlsx";
 import { LedgerEntry } from "../types";
 import { getCompleteChartOfAccounts } from "../data/chartOfAccounts";
 import { r2, parseNum, formatCurrency } from "../utils/helpers";
+import { createRoot } from 'react-dom/client';
 import html2pdf from "html2pdf.js";
 import { Form2307Sheet } from "./Form2307Sheet";
 
@@ -76,14 +77,14 @@ export const EntryModal: React.FC<EntryModalProps> = ({
           manualItems = JSON.parse(stored);
         }
 
-        const ledgerCandidatesMap: Record<string, { sku: string; item: string; qty: number; cost: number; price: number; reorder: number }> = {};
+        const ledgerCandidatesMap: Record<string, { sku: string; item: string; qty: number; cost: number; price: number; reorder: number; itemType?: 'Goods' | 'Services' }> = {};
         ledger.forEach(r => {
           if (r.status === 'Void' || r.type === 'Closing' || r.type === 'Setup') return;
           const name = String(r.category || r.particulars || 'Product Item').trim();
           if (!name) return;
           const sku = name.toUpperCase().replace(/[^A-Z0-9]/g, '-').slice(0, 12);
           if (!ledgerCandidatesMap[sku]) {
-            ledgerCandidatesMap[sku] = { sku, item: name, qty: 0, cost: r.type === 'Expense' ? r.gross : 0, price: r.type === 'Sales' ? r.gross : 0, reorder: 0 };
+            ledgerCandidatesMap[sku] = { sku, item: name, qty: 0, cost: r.type === 'Expense' ? r.gross : 0, price: r.type === 'Sales' ? r.gross : 0, reorder: 0, itemType: r.itemType || 'Goods' };
           }
           const val = r2(parseNum(r.gross));
           if (r.type === 'Sales') {
@@ -446,7 +447,7 @@ export const EntryModal: React.FC<EntryModalProps> = ({
     container.style.top = "-9999px";
     document.body.appendChild(container);
 
-    import("react-dom/client").then(({ createRoot }) => {
+    
       const root = createRoot(container);
       root.render(
         <Form2307Sheet
@@ -482,7 +483,6 @@ export const EntryModal: React.FC<EntryModalProps> = ({
             showToast("BIR Form 2307 PDF downloaded!", "success");
           });
       }, 800);
-    });
   };
 
   const handleSave = () => {

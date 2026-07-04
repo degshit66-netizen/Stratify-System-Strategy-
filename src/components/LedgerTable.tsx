@@ -67,6 +67,19 @@ export const LedgerTable: React.FC<LedgerTableProps> = ({
   const [sortAsc, setSortAsc] = React.useState<boolean>(false);
   const [subTab, setSubTab] = React.useState<'all' | 'sales' | 'purchases'>('all');
 
+  // Custom prompt/confirm modal state
+  const [customPrompt, setCustomPrompt] = React.useState<{
+    title: string;
+    message: string;
+    isPinInput?: boolean;
+    confirmLabel?: string;
+    cancelLabel?: string;
+    type?: 'rose' | 'indigo' | 'emerald';
+    onConfirm: (inputValue?: string) => void;
+  } | null>(null);
+
+  const [pinValue, setPinValue] = React.useState('');
+
   const handleSort = (col: keyof LedgerEntry) => {
     if (sortCol === col) {
       setSortAsc(!sortAsc);
@@ -82,20 +95,41 @@ export const LedgerTable: React.FC<LedgerTableProps> = ({
     const currentlyLocked = lockedMonths[key] === true;
     
     if (currentlyLocked) {
-      const pin = prompt(`Enter Admin PIN to unlock ${m} ${yearFilter}:`);
-      if (pin === null) return;
-      if (pin === authorizedPIN) {
-        const nextMonths = { ...lockedMonths };
-        delete nextMonths[key];
-        onUpdateLocks(nextMonths, lockedQuarters);
-      } else {
-        alert("Incorrect Admin PIN. Access denied.");
-      }
+      setCustomPrompt({
+        title: `Unlock ${m} ${yearFilter}`,
+        message: `Please enter your Admin PIN to unlock editing for ${m} ${yearFilter}:`,
+        isPinInput: true,
+        confirmLabel: 'Unlock',
+        cancelLabel: 'Cancel',
+        type: 'indigo',
+        onConfirm: (pin) => {
+          if (pin === authorizedPIN) {
+            const nextMonths = { ...lockedMonths };
+            delete nextMonths[key];
+            onUpdateLocks(nextMonths, lockedQuarters);
+          } else {
+            setCustomPrompt({
+              title: 'Access Denied',
+              message: 'Incorrect Admin PIN. Access was denied.',
+              confirmLabel: 'Okay',
+              type: 'rose',
+              onConfirm: () => {}
+            });
+          }
+        }
+      });
     } else {
-      if (confirm(`Are you sure you want to lock ${m} ${yearFilter}? This will prevent any editing or voiding of transactions in this period.`)) {
-        const nextMonths = { ...lockedMonths, [key]: true };
-        onUpdateLocks(nextMonths, lockedQuarters);
-      }
+      setCustomPrompt({
+        title: `Lock ${m} ${yearFilter}`,
+        message: `Are you sure you want to lock ${m} ${yearFilter}? This will prevent any editing or voiding of transactions in this period.`,
+        confirmLabel: 'Lock Period',
+        cancelLabel: 'Cancel',
+        type: 'rose',
+        onConfirm: () => {
+          const nextMonths = { ...lockedMonths, [key]: true };
+          onUpdateLocks(nextMonths, lockedQuarters);
+        }
+      });
     }
   };
 
@@ -105,20 +139,41 @@ export const LedgerTable: React.FC<LedgerTableProps> = ({
     const currentlyLocked = lockedQuarters[key] === true;
     
     if (currentlyLocked) {
-      const pin = prompt(`Enter Admin PIN to unlock ${q} ${yearFilter}:`);
-      if (pin === null) return;
-      if (pin === authorizedPIN) {
-        const nextQuarters = { ...lockedQuarters };
-        delete nextQuarters[key];
-        onUpdateLocks(lockedMonths, nextQuarters);
-      } else {
-        alert("Incorrect Admin PIN. Access denied.");
-      }
+      setCustomPrompt({
+        title: `Unlock ${q} ${yearFilter}`,
+        message: `Please enter your Admin PIN to unlock editing for ${q} ${yearFilter}:`,
+        isPinInput: true,
+        confirmLabel: 'Unlock',
+        cancelLabel: 'Cancel',
+        type: 'indigo',
+        onConfirm: (pin) => {
+          if (pin === authorizedPIN) {
+            const nextQuarters = { ...lockedQuarters };
+            delete nextQuarters[key];
+            onUpdateLocks(lockedMonths, nextQuarters);
+          } else {
+            setCustomPrompt({
+              title: 'Access Denied',
+              message: 'Incorrect Admin PIN. Access was denied.',
+              confirmLabel: 'Okay',
+              type: 'rose',
+              onConfirm: () => {}
+            });
+          }
+        }
+      });
     } else {
-      if (confirm(`Are you sure you want to lock ${q} ${yearFilter}? This will prevent any editing or voiding in all months within this quarter.`)) {
-        const nextQuarters = { ...lockedQuarters, [key]: true };
-        onUpdateLocks(lockedMonths, nextQuarters);
-      }
+      setCustomPrompt({
+        title: `Lock ${q} ${yearFilter}`,
+        message: `Are you sure you want to lock ${q} ${yearFilter}? This will prevent any editing or voiding in all months within this quarter.`,
+        confirmLabel: 'Lock Period',
+        cancelLabel: 'Cancel',
+        type: 'rose',
+        onConfirm: () => {
+          const nextQuarters = { ...lockedQuarters, [key]: true };
+          onUpdateLocks(lockedMonths, nextQuarters);
+        }
+      });
     }
   };
 
@@ -565,6 +620,74 @@ export const LedgerTable: React.FC<LedgerTableProps> = ({
           </table>
         </div>
       </div>
+
+      {customPrompt && (
+        <div className="fixed inset-0 bg-zinc-950/80 z-[250] flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl w-full max-w-sm p-6 shadow-2xl relative overflow-hidden text-left">
+            <div className={`absolute top-0 left-0 w-full h-1.5 ${
+              customPrompt.type === 'rose' 
+                ? 'bg-rose-500' 
+                : customPrompt.type === 'emerald' 
+                  ? 'bg-emerald-500' 
+                  : 'bg-indigo-500'
+            }`} />
+            
+            <h3 className="text-sm font-black text-zinc-900 dark:text-white uppercase tracking-wider mb-2">
+              {customPrompt.title}
+            </h3>
+            <p className="text-xs text-zinc-600 dark:text-zinc-300 leading-relaxed mb-4">
+              {customPrompt.message}
+            </p>
+
+            {customPrompt.isPinInput && (
+              <div className="mb-6">
+                <input
+                  type="password"
+                  maxLength={4}
+                  value={pinValue}
+                  onChange={(e) => setPinValue(e.target.value)}
+                  className="w-full px-4 py-3 text-center bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl text-zinc-900 dark:text-white font-mono text-lg font-bold tracking-[0.5em] focus:outline-none focus:border-indigo-500"
+                  placeholder="••••"
+                  autoFocus
+                />
+              </div>
+            )}
+            
+            <div className="flex justify-end gap-3 pt-4 border-t border-zinc-100 dark:border-zinc-800">
+              {customPrompt.cancelLabel && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCustomPrompt(null);
+                    setPinValue('');
+                  }}
+                  className="px-4 py-2 text-[10px] font-bold text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200 uppercase tracking-widest transition-colors"
+                >
+                  {customPrompt.cancelLabel}
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => {
+                  const val = pinValue;
+                  setCustomPrompt(null);
+                  setPinValue('');
+                  customPrompt.onConfirm(val);
+                }}
+                className={`px-4 py-2 text-[10px] font-bold text-white rounded-xl uppercase tracking-widest transition-all ${
+                  customPrompt.type === 'rose'
+                    ? 'bg-rose-600 hover:bg-rose-500 shadow-sm hover:shadow-rose-500/20'
+                    : customPrompt.type === 'emerald'
+                      ? 'bg-emerald-600 hover:bg-emerald-500 shadow-sm hover:shadow-emerald-500/20'
+                      : 'bg-indigo-600 hover:bg-indigo-500 shadow-sm hover:shadow-indigo-500/20'
+                }`}
+              >
+                {customPrompt.confirmLabel || 'OK'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

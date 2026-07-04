@@ -1,6 +1,6 @@
 import { collection, doc, getDocs, setDoc, deleteDoc } from 'firebase/firestore';
 import { db } from './firebase';
-import { Tenant, User } from '../types';
+import { Tenant, User, PasswordResetRequest } from '../types';
 
 // Let's store references to the raw, original localStorage methods to prevent recursion
 export const rawStorage = {
@@ -13,7 +13,7 @@ export const rawStorage = {
 // Define global vs tenant-specific keys
 const isGlobalKey = (key: string) => {
   if (!key) return true;
-  return key.startsWith('mock_') || 
+  return key.startsWith('stratify_') || 
          key.startsWith('onboarded_') || 
          key.startsWith('show_onboarding_') ||
          key.startsWith('stratify_theme') || 
@@ -226,3 +226,62 @@ export const loadConfigFromFirebase = async (key: string): Promise<string | null
   }
 };
 
+
+
+export const syncSubscriptionRequestToFirebase = async (req: any) => {
+  try {
+    const docRef = doc(db, 'subscription_requests', req.id);
+    await setDoc(docRef, req);
+  } catch (error) {
+    console.error('Error saving subscription request:', error);
+  }
+};
+
+export const deleteSubscriptionRequestFromFirebase = async (id: string) => {
+  try {
+    const docRef = doc(db, 'subscription_requests', id);
+    await deleteDoc(docRef);
+  } catch (error) {
+    console.error('Error deleting subscription request:', error);
+  }
+};
+
+export const loadSubscriptionRequestsFromFirebase = async (): Promise<any[]> => {
+  try {
+    const colRef = collection(db, 'subscription_requests');
+    const snapshot = await getDocs(colRef);
+    return snapshot.docs.map(doc => doc.data() as any);
+  } catch (error) {
+    console.error('Error loading subscription requests:', error);
+    return [];
+  }
+};
+
+export const syncPasswordResetRequestToFirebase = async (req: PasswordResetRequest) => {
+  try {
+    const docRef = doc(db, 'password_reset_requests', req.id);
+    await setDoc(docRef, req);
+  } catch (error) {
+    console.error('Error saving password reset request:', error);
+  }
+};
+
+export const deletePasswordResetRequestFromFirebase = async (id: string) => {
+  try {
+    const docRef = doc(db, 'password_reset_requests', id);
+    await deleteDoc(docRef);
+  } catch (error) {
+    console.error('Error deleting password reset request:', error);
+  }
+};
+
+export const loadPasswordResetRequestsFromFirebase = async (): Promise<PasswordResetRequest[]> => {
+  try {
+    const colRef = collection(db, 'password_reset_requests');
+    const snapshot = await getDocs(colRef);
+    return snapshot.docs.map(doc => doc.data() as PasswordResetRequest);
+  } catch (error) {
+    console.error('Error loading password reset requests:', error);
+    return [];
+  }
+};
