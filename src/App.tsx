@@ -20,6 +20,7 @@ import {
   ShieldCheck, 
   ChevronRight,
   AlertCircle,
+  Radio,
   Sun,
   Moon,
   Menu,
@@ -39,7 +40,9 @@ import {
   PieChart,
   HardHat,
   ShieldAlert,
-  FolderOpen
+  FolderOpen,
+  Bot,
+  Sparkles
 } from 'lucide-react';
 
 import { LedgerEntry, CompanyConfig, User, Tenant, SchedulerTask, SystemAnnouncement } from './types';
@@ -48,6 +51,7 @@ import { getCompleteChartOfAccounts } from './data/chartOfAccounts';
 
 // Subcomponents
 import { Dashboard } from './components/Dashboard';
+import { AICopilot } from './components/AICopilot';
 import { LedgerTable } from './components/LedgerTable';
 import { SalesModule } from './components/SalesModule';
 import { PurchaseModule } from './components/PurchaseModule';
@@ -129,6 +133,7 @@ export default function App() {
   const [lockedQuarters, setLockedQuarters] = useState<Record<string, boolean>>({});
   const [isDarkMode, setIsDarkMode] = useState(() => localStorage.getItem('stratify_theme') !== 'light');
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+  const [isAICopilotOpen, setIsAICopilotOpen] = useState(false);
   const [companyConfig, setCompanyConfig] = useState<CompanyConfig>({
     companyName: 'STRATIFY System',
     tin: '',
@@ -879,6 +884,20 @@ export default function App() {
             )}
           </div>
 
+          {/* Stratify AI Copilot Launcher */}
+          <button 
+            onClick={() => setIsAICopilotOpen(true)}
+            className="p-2 relative text-blue-200 hover:text-white hover:bg-white/10 rounded-xl transition-all group flex items-center justify-center"
+            title="Stratify AI Financial Copilot"
+          >
+            {/* Soft glowing beacon */}
+            <span className="absolute -top-0.5 -right-0.5 flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75 animate-duration-1000"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
+            </span>
+            <Bot className="w-5 h-5 text-indigo-300 group-hover:text-white transition-colors animate-pulse" />
+          </button>
+
           <button 
             onClick={() => setIsDarkMode(!isDarkMode)}
             className="p-2 text-blue-200 hover:text-white hover:bg-white/10 rounded-xl transition-all"
@@ -913,22 +932,77 @@ export default function App() {
         </div>
       </header>
 
-      {/* SYSTEM ANNOUNCEMENTS */}
-      {announcements.filter(a => a.active).map(ann => (
-        <div key={ann.id} className={`w-full px-6 py-2.5 flex items-center justify-between text-sm shadow-sm z-20 shrink-0
-          ${ann.type === 'info' ? 'bg-blue-600 text-white' : ''}
-          ${ann.type === 'warning' ? 'bg-amber-500 text-white' : ''}
-          ${ann.type === 'success' ? 'bg-emerald-600 text-white' : ''}
-        `}>
-          <div className="flex items-center gap-3">
-            <AlertCircle className="w-4 h-4 shrink-0" />
-            <div>
-              <span className="font-bold mr-2">{ann.title}:</span>
-              <span>{ann.message}</span>
+      {/* 4D HOLOGRAPHIC RUNNING MARQUEE BROADCAST SYSTEM */}
+      {announcements.filter(a => a.active).length > 0 && (() => {
+        const activeAnnouncements = announcements.filter(a => a.active);
+        const textSegments = activeAnnouncements.map(ann => {
+          const emoji = ann.type === 'warning' ? '⚠' : ann.type === 'success' ? '✦' : '⚡';
+          return `${emoji} [${ann.title.toUpperCase()}] : ${ann.message}`;
+        });
+        const combinedText = textSegments.join('     ❖     ') + '     ❖     ';
+        
+        return (
+          <div className="w-full relative z-30 shrink-0 select-none dimensional-banner bg-zinc-950 text-white overflow-hidden py-3 px-6 border-b border-cyan-500/30 no-print">
+            {/* Holographic scanning line */}
+            <div className="absolute inset-x-0 top-0 h-[1.5px] bg-gradient-to-r from-transparent via-cyan-400 to-transparent shadow-[0_0_8px_#22d3ee]" />
+            
+            {/* Cybernetic Grid Overlay for 4D feel */}
+            <div className="absolute inset-0 bg-[linear-gradient(rgba(18,24,38,0.2)_1px,transparent_1px),linear-gradient(90deg,rgba(18,24,38,0.2)_1px,transparent_1px)] bg-[size:16px_16px] pointer-events-none opacity-40" />
+            
+            <div className="max-w-[1600px] mx-auto flex items-center justify-between gap-6 relative z-10">
+              {/* Dynamic Signal Source Badge */}
+              <div className="flex items-center gap-2.5 shrink-0 bg-zinc-900/95 border border-cyan-500/20 rounded-full py-1 px-3.5 shadow-[0_0_10px_rgba(34,211,238,0.1)]">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-500 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-600"></span>
+                </span>
+                <Radio className="w-4 h-4 text-cyan-400 animate-pulse shrink-0" />
+                <span className="text-[10px] font-black font-mono tracking-[0.25em] text-cyan-400 uppercase">
+                  4D_LIVE_SIGNAL
+                </span>
+              </div>
+
+              {/* Endless Loop Running Marquee */}
+              <div className="flex-1 overflow-hidden relative py-0.5">
+                {/* Fade overlays on the sides for modern visual finish */}
+                <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-zinc-950 to-transparent z-10 pointer-events-none" />
+                <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-zinc-950 to-transparent z-10 pointer-events-none" />
+                
+                <div className="marquee-container">
+                  <div className="marquee-content flex items-center font-mono text-xs font-bold uppercase tracking-wider text-zinc-100">
+                    <div className="flex items-center shrink-0 chromatic-text">
+                      {Array(4).fill(combinedText).map((txt, i) => (
+                        <span key={i} className="mr-16 flex items-center gap-6">
+                          {txt}
+                        </span>
+                      ))}
+                    </div>
+                    <div className="flex items-center shrink-0 chromatic-text">
+                      {Array(4).fill(combinedText).map((txt, i) => (
+                        <span key={i} className="mr-16 flex items-center gap-6">
+                          {txt}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Cyber telemetrics HUD */}
+              <div className="hidden lg:flex items-center gap-4 text-[9px] font-mono text-zinc-500 shrink-0">
+                <span className="flex items-center gap-1">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                  STABLE_CONN
+                </span>
+                <span className="border-l border-zinc-800 h-3" />
+                <span>ERR_RATE: 0.00%</span>
+                <span className="border-l border-zinc-800 h-3" />
+                <span className="text-zinc-400 select-all">PORT_3000</span>
+              </div>
             </div>
           </div>
-        </div>
-      ))}
+        );
+      })()}
 
       <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
         
@@ -1017,6 +1091,7 @@ export default function App() {
                   quarterFilter={quarterFilter}
                   companyName={companyConfig.companyName}
                   companyTin={companyConfig.tin}
+                  onOpenAICopilot={() => setIsAICopilotOpen(true)}
                 />
               )}
               {activeTab === 'Ledger' && (
@@ -1211,6 +1286,16 @@ export default function App() {
         entry={activeVoucher}
         companyConfig={companyConfig}
         showToast={showToast}
+      />
+
+      <AICopilot 
+        isOpen={isAICopilotOpen}
+        onClose={() => setIsAICopilotOpen(false)}
+        ledger={ledger}
+        companyName={companyConfig.companyName}
+        yearFilter={yearFilter}
+        monthFilter={monthFilter}
+        quarterFilter={quarterFilter}
       />
 
       {/* FLOATING ACTION TOAST NOTIFICATIONS */}

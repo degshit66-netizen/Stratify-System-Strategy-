@@ -190,3 +190,81 @@ html, body, #root {
     z-index: 99999 !important;
   }
 }
+
+/* --- 4D HOLOGRAPHIC RUNNING MARQUEE ANIMATIONS & STYLES --- */
+@keyframes continuous-marquee {
+  0% {
+    transform: translateX(0%);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+@keyframes holographic-flicker {
+  0%, 100% {
+    opacity: 0.95;
+    filter: hue-rotate(0deg) saturate(1.1);
+  }
+  50% {
+    opacity: 0.85;
+    filter: hue-rotate(15deg) saturate(1.4) drop-shadow(0 0 15px rgba(239, 68, 68, 0.4));
+  }
+}
+
+@keyframes scanline-pulse {
+  0% {
+    transform: translateY(-100%);
+  }
+  100% {
+    transform: translateY(100%);
+  }
+}
+
+@keyframes space-time-tilt {
+  0%, 100% {
+    transform: perspective(1000px) rotateX(1deg) rotateY(-1deg) translateZ(0);
+  }
+  50% {
+    transform: perspective(1000px) rotateX(-1deg) rotateY(1deg) translateZ(5px);
+  }
+}
+
+@keyframes signal-glow {
+  0%, 100% {
+    box-shadow: 0 0 12px rgba(34, 211, 238, 0.25);
+  }
+  50% {
+    box-shadow: 0 0 25px rgba(244, 63, 94, 0.45);
+  }
+}
+
+.marquee-container {
+  overflow: hidden;
+  white-space: nowrap;
+  display: flex;
+  width: 100%;
+}
+
+.marquee-content {
+  display: flex;
+  flex-shrink: 0;
+  min-width: 100%;
+  animation: continuous-marquee 160s linear infinite;
+}
+
+.marquee-content:hover {
+  animation-play-state: paused;
+}
+
+.dimensional-banner {
+  transform-style: preserve-3d;
+  animation: space-time-tilt 6s ease-in-out infinite, signal-glow 4s ease-in-out infinite;
+  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.1);
+}
+
+.chromatic-text {
+  text-shadow: -1px -0.5px 0 rgba(244, 63, 94, 0.6), 1px 0.5px 0 rgba(34, 211, 238, 0.6);
+  animation: holographic-flicker 5s ease-in-out infinite;
+}
+

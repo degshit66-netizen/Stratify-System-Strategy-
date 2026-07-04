@@ -186,12 +186,12 @@ export const InventoryModule: React.FC<InventoryModuleProps> = ({
         <motion.div variants={itemVariants} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-5 rounded-2xl flex items-start justify-between shadow-sm">
           <div className="space-y-2">
             <span className="text-xs font-bold uppercase tracking-wider text-zinc-400">Low Stock Warnings</span>
-            <div className={`text-lg font-extrabold ${lowStockCount > 0 ? 'text-blue-500' : 'text-emerald-500'}`}>
+            <div className={`text-lg font-extrabold ${lowStockCount > 0 ? 'text-red-500 animate-pulse' : 'text-emerald-500'}`}>
               {lowStockCount}
             </div>
-            <div className="text-xs text-zinc-400 font-medium">Items under minimum reorder thresholds</div>
+            <div className="text-xs text-zinc-400 font-medium">Items under minimum safety thresholds</div>
           </div>
-          <div className={`p-2.5 rounded-xl ${lowStockCount > 0 ? 'bg-blue-50 dark:bg-blue-950/40 text-blue-500 dark:text-blue-400' : 'bg-emerald-50 text-emerald-500'}`}>
+          <div className={`p-2.5 rounded-xl transition-all ${lowStockCount > 0 ? 'bg-rose-50 dark:bg-rose-950/40 text-rose-500 dark:text-rose-400 animate-pulse' : 'bg-emerald-50 text-emerald-500'}`}>
             <AlertTriangle className="w-5 h-5" />
           </div>
         </motion.div>
@@ -207,6 +207,49 @@ export const InventoryModule: React.FC<InventoryModuleProps> = ({
           </div>
         </motion.div>
       </div>
+
+      {lowStockCount > 0 && (
+        <motion.div
+          variants={itemVariants}
+          className="bg-red-50/60 dark:bg-red-950/20 border border-red-200/50 dark:border-red-900/30 rounded-3xl p-6 text-left space-y-3 shadow-sm relative overflow-hidden"
+        >
+          <div className="absolute top-0 right-0 w-32 h-32 bg-red-500/5 rounded-full blur-2xl pointer-events-none" />
+          <div className="flex items-center gap-3 text-red-600 dark:text-red-400">
+            <div className="w-10 h-10 rounded-xl bg-red-100 dark:bg-red-950/60 flex items-center justify-center">
+              <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400 animate-bounce" />
+            </div>
+            <div>
+              <h3 className="font-bold text-sm uppercase tracking-wider">📦 Reorder Warning: Out of Stock Risk!</h3>
+              <p className="text-xs text-zinc-500 dark:text-zinc-300 mt-0.5">
+                Ang mga sumusunod na produkto ay mas mababa na sa iyong itinakdang **Safety Stock Level** (reorder threshold).
+              </p>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5 pt-2">
+            {deduped
+              .filter(r => {
+                const isService = r.itemType === 'Services' || r.category?.toLowerCase() === 'services' || r.item?.toLowerCase().includes('service');
+                const qty = r2(parseNum(r.qty));
+                const reorder = r2(parseNum(r.reorder || 0));
+                return !isService && qty <= reorder;
+              })
+              .map(r => (
+                <div key={r.sku} className="flex items-center justify-between p-3 bg-white dark:bg-zinc-900 rounded-2xl border border-red-100 dark:border-red-900/20 shadow-sm relative group hover:border-red-300 dark:hover:border-red-700/50 transition-all">
+                  <div className="text-left">
+                    <div className="font-bold text-xs text-zinc-800 dark:text-zinc-200">{r.item}</div>
+                    <div className="text-[10px] text-zinc-400 font-mono mt-0.5">{r.sku}</div>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <span className="inline-flex items-center gap-1 font-mono font-black text-xs text-red-500 bg-red-50 dark:bg-red-950/40 px-2 py-0.5 rounded-lg border border-red-200/30">
+                      {r.qty} left
+                    </span>
+                    <div className="text-[9px] text-zinc-400 mt-1">Safety Level: <span className="font-bold">{r.reorder}</span></div>
+                  </div>
+                </div>
+              ))}
+          </div>
+        </motion.div>
+      )}
 
       <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-5 shadow-sm space-y-4">
         <h3 className="text-sm font-bold text-zinc-800 dark:text-zinc-200 uppercase tracking-wider">Add Item / Service</h3>
@@ -387,7 +430,7 @@ export const InventoryModule: React.FC<InventoryModuleProps> = ({
                         isService
                           ? 'bg-zinc-50 border-zinc-200 text-zinc-600 dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-400'
                           : isLow 
-                            ? 'bg-blue-50 border-blue-100 text-blue-700 dark:bg-blue-950/30 dark:border-blue-900/30 dark:text-blue-400' 
+                            ? 'bg-rose-50 border-rose-200 text-rose-700 dark:bg-rose-950/30 dark:border-rose-900/30 dark:text-rose-400 animate-pulse' 
                             : 'bg-emerald-50 border-emerald-100 text-emerald-700 dark:bg-emerald-950/30 dark:border-emerald-900/30 dark:text-emerald-400'
                       }`}>
                         {isService ? 'Non-Stock' : isLow ? 'Low Stock' : 'Good'}

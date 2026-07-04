@@ -378,6 +378,131 @@ Please return a JSON object exactly matching the schema. Do not include markdown
     }
   });
 
+  // AI Financial Copilot Endpoint using GoogleGenAI SDK
+  app.post("/api/ai-copilot", async (req, res) => {
+    try {
+      const { messages, ledgerSummary, companyName } = req.body;
+      if (!messages || !Array.isArray(messages)) {
+        return res.status(400).json({ error: "Messages array is required." });
+      }
+
+      const apiKey = process.env.GEMINI_API_KEY;
+      if (!apiKey) {
+        return res.status(500).json({ error: "Gemini API key is not configured in the Secrets panel." });
+      }
+
+      const ai = new GoogleGenAI({ 
+        apiKey,
+        httpOptions: {
+          headers: {
+            'User-Agent': 'aistudio-build',
+          }
+        }
+      });
+
+      // Construct a detailed system instruction for the CPA Assistant
+      const systemInstruction = `You are the Stratify AI Financial Copilot, an elite certified public accountant (CPA) and strategic financial advisor built specifically for the enterprise platform "STRATIFY" (an advanced ERP and Philippine tax accounting system).
+
+Current Organization Context:
+- Company Name: ${companyName || "Stratify Enterprise"}
+- Local Currency: Philippine Peso (PHP, ₱)
+
+Current Financial State (summarized from General Ledger):
+- Total Gross Sales/Revenue: ₱${ledgerSummary?.totalSalesGross || 0} (Net Sales: ₱${ledgerSummary?.totalSalesNet || 0})
+- Total Gross Expenses/Purchases: ₱${ledgerSummary?.totalPurchGross || 0} (Net Purchases: ₱${ledgerSummary?.totalPurchNet || 0})
+- Total Cost of Sales (COGS): ₱${ledgerSummary?.costOfSales || 0}
+- Operating Expenses: ₱${ledgerSummary?.operatingExpenses || 0}
+- Gross Profit Margin: ₱${ledgerSummary?.grossProfit || 0}
+- Estimated Net Income/Profit: ₱${ledgerSummary?.netIncome || 0}
+- Output VAT: ₱${ledgerSummary?.outputVat || 0}
+- Input VAT: ₱${ledgerSummary?.inputVat || 0}
+- Net VAT Payable/Refundable: ₱${ledgerSummary?.netVat || 0}
+- Total Cash Collected/Recorded: ₱${ledgerSummary?.totalCash || 0}
+- Number of Active Transactions: ${ledgerSummary?.activeTransactionsCount || 0}
+
+Your capabilities and instructions:
+1. Provide extremely accurate financial analysis, expense control suggestions, and growth strategy recommendations.
+2. Answer tax-compliance questions specifically tailored to Philippine BIR (Bureau of Internal Revenue) rules, including VAT, Percentage Tax, BIR Form 2307 (withholding tax certificates), and Relief DAT file requirements.
+3. Be professional, highly insightful, yet clear and scannable. Use markdown (bold, bullets, tables) to present details elegantly.
+4. If asked to perform calculations or projections based on the ledger numbers above, do so with mathematical precision. Always format currency figures with commas and ₱ (e.g., ₱1,250,000.00).
+5. Avoid technical jargon when explaining basic concepts, but provide precise BIR section citations or tax rates (e.g., 12% VAT, 1% or 2% EWT under specific ATCs like WI158) for compliance queries.`;
+
+      // Format messages into Content format expected by GoogleGenAI
+      const contents = messages.map((msg: any) => ({
+        role: msg.role === "assistant" ? "model" : "user",
+        parts: [{ text: msg.content }]
+      }));
+
+      let response;
+      let usedFallback = false;
+
+      try {
+        response = await ai.models.generateContent({
+          model: "gemini-3.5-flash",
+          contents,
+          config: {
+            systemInstruction,
+            temperature: 0.7,
+          },
+        });
+      } catch (geminiError: any) {
+        const errMsg = (geminiError.message || "").toLowerCase();
+        if (
+          errMsg.includes("quota") || 
+          errMsg.includes("exhausted") || 
+          errMsg.includes("rate") || 
+          errMsg.includes("429") || 
+          errMsg.includes("resource_exhausted")
+        ) {
+          console.warn("Gemini 3.5 Flash quota exceeded or rate limited. Attempting fallback to gemini-3.1-flash-lite...");
+          try {
+            response = await ai.models.generateContent({
+              model: "gemini-3.1-flash-lite",
+              contents,
+              config: {
+                systemInstruction,
+                temperature: 0.7,
+              },
+            });
+            usedFallback = true;
+          } catch (fallbackError: any) {
+            console.error("Fallback to gemini-3.1-flash-lite also failed:", fallbackError);
+            throw geminiError; // throw the original error if fallback also fails
+          }
+        } else {
+          throw geminiError;
+        }
+      }
+
+      let text = response.text || "";
+      if (usedFallback) {
+        text = "💡 *(Note: We are running in low-resource fallback mode due to high service traffic)*\n\n" + text;
+      }
+
+      res.json({ content: text });
+    } catch (error: any) {
+      console.error("AI Copilot Error:", error);
+      
+      const rawMsg = error.message || "";
+      let friendlyError = "Failed to process request with AI Copilot.";
+
+      if (
+        rawMsg.includes("quota") || 
+        rawMsg.includes("exhausted") || 
+        rawMsg.includes("429") || 
+        rawMsg.includes("RESOURCE_EXHAUSTED")
+      ) {
+        friendlyError = "🔒 **Gemini Free Tier Quota Exceeded (20 requests per day)**\n\nYou have reached the standard Google free tier quota limit for today.\n\n**How to continue:**\n1. Wait a while for the rate limits or daily quota to reset.\n2. Add your own paid/unlimited API Key under the **Settings > Secrets** panel in the workspace to bypass all limits.";
+      } else if (rawMsg.includes("API key not valid") || rawMsg.includes("INVALID_ARGUMENT") || rawMsg.includes("key is invalid")) {
+        friendlyError = "🔑 **Invalid API Key**\n\nThe Gemini API Key configured in your environment appears to be invalid. Please verify and update your API key in the **Settings > Secrets** panel.";
+      } else {
+        friendlyError = `⚠️ **AI Service Error**: ${rawMsg}`;
+      }
+
+      res.status(500).json({ error: friendlyError });
+    }
+  });
+
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
