@@ -962,28 +962,30 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ tenant
                   <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800/60">
                     {localUsers
                       .filter(user => {
+                        if (!user) return false;
                         const s = credentialsSearch.toLowerCase();
                         if (!s) return true;
                         const tenantName = tenants.find(t => t.id === user.tenantId)?.name || '';
                         return (
-                          user.name.toLowerCase().includes(s) ||
-                          user.email.toLowerCase().includes(s) ||
-                          user.role.toLowerCase().includes(s) ||
+                          (user.name || '').toLowerCase().includes(s) ||
+                          (user.email || '').toLowerCase().includes(s) ||
+                          (user.role || '').toLowerCase().includes(s) ||
                           tenantName.toLowerCase().includes(s)
                         );
                       })
                       .map(user => {
                         const matchedTenant = tenants.find(t => t.id === user.tenantId);
                         const isPassRevealed = !!revealedPassUsers[user.id];
+                        const displayName = user.name || user.email || 'No Name';
                         return (
                           <tr key={user.id} className="hover:bg-zinc-100/50 dark:hover:bg-zinc-950/40 transition-colors">
                             <td className="py-3.5 px-4">
                               <div className="flex items-center gap-2.5">
                                 <div className="w-8 h-8 rounded-full bg-blue-600/10 border border-blue-500/20 text-blue-500 flex items-center justify-center font-bold text-xs uppercase">
-                                  {user.name.slice(0, 2)}
+                                  {displayName.slice(0, 2)}
                                 </div>
                                 <div>
-                                  <div className="font-bold text-zinc-900 dark:text-white uppercase tracking-wider">{user.name}</div>
+                                  <div className="font-bold text-zinc-900 dark:text-white uppercase tracking-wider">{displayName}</div>
                                   <div className="text-[9px] font-mono text-zinc-400 uppercase">UID: {user.id}</div>
                                 </div>
                               </div>
@@ -1182,7 +1184,7 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ tenant
               </div>
               <div>
                 <h2 className="text-lg font-black text-zinc-900 dark:text-white uppercase tracking-widest">Override User Credentials</h2>
-                <p className="text-[10px] font-mono text-zinc-400 uppercase">Target user: {passTargetUser.name}</p>
+                <p className="text-[10px] font-mono text-zinc-400 uppercase">Target user: {passTargetUser?.name || 'No Name'}</p>
               </div>
             </div>
 
@@ -1190,11 +1192,11 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ tenant
               <div className="p-3 bg-zinc-100 dark:bg-zinc-950/40 rounded-xl border border-zinc-200 dark:border-zinc-800/80 font-mono text-xs">
                 <div className="flex justify-between py-1 border-b border-zinc-200 dark:border-zinc-800/40">
                   <span className="text-zinc-500">USER_EMAIL:</span>
-                  <span className="font-bold text-zinc-900 dark:text-white">{passTargetUser.email}</span>
+                  <span className="font-bold text-zinc-900 dark:text-white">{passTargetUser?.email || 'N/A'}</span>
                 </div>
                 <div className="flex justify-between py-1 mt-1">
                   <span className="text-zinc-500">CURRENT_PASS:</span>
-                  <span className="font-bold text-amber-500 select-all">{passTargetUser.password}</span>
+                  <span className="font-bold text-amber-500 select-all">{passTargetUser?.password || 'N/A'}</span>
                 </div>
               </div>
 
