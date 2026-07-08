@@ -50,11 +50,11 @@ import { r2, parseNum, cleanDate } from './utils/helpers';
 import { getCompleteChartOfAccounts } from './data/chartOfAccounts';
 
 // Lazy loaded subcomponents for code splitting
-const Dashboard = React.lazy(() => import('./components/Dashboard'));
+import Dashboard from './components/Dashboard';
 const AICopilot = React.lazy(() => import('./components/AICopilot'));
-const LedgerTable = React.lazy(() => import('./components/LedgerTable'));
-const SalesModule = React.lazy(() => import('./components/SalesModule'));
-const PurchaseModule = React.lazy(() => import('./components/PurchaseModule'));
+import LedgerTable from './components/LedgerTable';
+import SalesModule from './components/SalesModule';
+import PurchaseModule from './components/PurchaseModule';
 const ReconciliationModule = React.lazy(() => import('./components/ReconciliationModule'));
 const FixedAssetsModule = React.lazy(() => import('./components/FixedAssetsModule'));
 const InventoryModule = React.lazy(() => import('./components/InventoryModule'));
@@ -76,11 +76,11 @@ const SubscriptionPrompt = React.lazy(() => import('./components/SubscriptionPro
 const OnboardingWelcome = React.lazy(() => import('./components/OnboardingWelcome'));
 
 // Modals and Core
-import { EntryModal } from './components/EntryModal';
-import { SettingsModal } from './components/SettingsModal';
-import { Auth } from './components/Auth';
+const EntryModal = React.lazy(() => import('./components/EntryModal').then(module => ({ default: module.EntryModal })));
+const SettingsModal = React.lazy(() => import('./components/SettingsModal').then(module => ({ default: module.SettingsModal })));
+const Auth = React.lazy(() => import('./components/Auth').then(module => ({ default: module.Auth })));
 import { useTrialMonitor } from './hooks/useTrialMonitor';
-import { SuperAdminDashboard } from './components/SuperAdminDashboard';
+const SuperAdminDashboard = React.lazy(() => import('./components/SuperAdminDashboard').then(module => ({ default: module.SuperAdminDashboard })));
 import { loadTenantsFromFirebase, loadUsersFromFirebase, syncTenantToFirebase, syncUserToFirebase, loadStorageFromFirebase, loadConfigFromFirebase } from './lib/db';
 
 export type ActiveTab = 
@@ -265,6 +265,25 @@ export default function App() {
   // --- Effects ---
 
   useEffect(() => {
+    // Progressive Loading Strategy: Prefetch secondary modules in background
+    const prefetchTimer = setTimeout(() => {
+      import('./components/EcommerceModule');
+      import('./components/PayrollModule');
+      import('./components/AuditTrailModule');
+      import('./components/HRModule');
+      import('./components/ReportsModule');
+      import('./components/InventoryModule');
+      import('./components/FSModule');
+      import('./components/COAModule');
+      import('./components/BooksModule');
+      import('./components/ReconciliationModule');
+      import('./components/SchedulerModule');
+      import('./components/ContactsModule');
+      import('./components/FixedAssetsModule');
+      import('./components/AICopilot');
+    }, 3000);
+
+
     // Dynamic Meta Tags & Title Update for SEO/Social Sharing
     document.title = currentTenant ? `${currentTenant.name} | STRATIFY` : 'STRATIFY (Strategy + Simplify)';
     

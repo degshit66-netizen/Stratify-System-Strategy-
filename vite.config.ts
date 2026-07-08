@@ -16,6 +16,15 @@ export default defineConfig(() => {
     ],
     build: {
       chunkSizeWarningLimit: 2000,
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            'react-vendor': ['react', 'react-dom'],
+            'ui-vendor': ['framer-motion', 'lucide-react', 'recharts'],
+            'firebase-vendor': ['firebase/app', 'firebase/auth', 'firebase/firestore', 'firebase/storage'],
+          }
+        }
+      },
     },
     optimizeDeps: {
       include: [
